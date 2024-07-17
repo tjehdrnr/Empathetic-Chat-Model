@@ -4,7 +4,7 @@ from datasets import load_dataset, Dataset, DatasetDict
 from transformers import AutoTokenizer
 from argparse import ArgumentParser
 
-from utils.arguments import train_arguments
+from utils.arguments import TrainArguments
 from utils.prompter import Prompter
 
 
