@@ -8,7 +8,7 @@ from transformers import TrainingArguments, DataCollatorForSeq2Seq
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer
 
-from utils.arguments import train_arguments
+from utils.arguments import TrainArguments
 from utils.data_loader import load_and_preprocess_data
 from utils.train_utils import *
 from utils.callbacks import NormsCallback
@@ -43,6 +43,9 @@ def train(train_args: ArgumentParser):
         quantization_config=bnb_config,
         device_map={"":0}
     )
+    # If you added tokens to the tokenizer, resize the vocab dim of embedding.
+    model.resize_token_embeddings(len(tokenizer))
+
     # Improve memory efficiency and save GPU memory.
     model.gradient_checkpointing_enable()
     model = prepare_model_for_kbit_training(model)
@@ -104,8 +107,9 @@ def train(train_args: ArgumentParser):
 
 
 def main():
-    train_args = train_arguments()
+    train_args = TrainArguments.define_args()
     train(train_args)
+
 
 if __name__ == "__main__":
     main()
