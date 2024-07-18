@@ -116,50 +116,46 @@ class DataCollatorForLeftPadding:
 
 
 
-def main():
-    from data_loader import load_and_preprocess_data
-    from arguments import TrainArguments
-    from transformers import AutoTokenizer, AutoModelForCausalLM
+# def main():
+#     from data_loader import load_and_preprocess_data
+#     from arguments import TrainArguments
+#     from transformers import AutoTokenizer, AutoModelForCausalLM
     
-    config = TrainArguments.define_args()
-    tokenizer = AutoTokenizer.from_pretrained(config.base_model)
-    tokenizer.add_tokens(["<|unused|>"], special_tokens=True)
-    # tokenizer.add_special_tokens({"<|unused|>": len(tokenizer.vocab) + 1})
-    tokenizer.pad_token_id = 58944 # 58944
-    print(tokenizer.pad_token_id)
+#     config = TrainArguments.define_args()
+#     tokenizer = AutoTokenizer.from_pretrained(config.base_model)
+#     tokenizer.add_tokens(["<|unused|>"], special_tokens=True)
+#     # tokenizer.add_special_tokens({"<|unused|>": len(tokenizer.vocab) + 1})
+#     tokenizer.pad_token_id = 58944 # 58944
+#     print(tokenizer.pad_token_id)
 
-    model = AutoModelForCausalLM.from_pretrained(config.base_model, device_map="cpu")
-    model.resize_token_embeddings(len(tokenizer))
+#     model = AutoModelForCausalLM.from_pretrained(config.base_model, device_map="cpu")
+#     model.resize_token_embeddings(len(tokenizer))
 
-    train_batch_size = config.per_device_train_batch
-    valid_batch_size = config.per_device_valid_batch
+#     train_batch_size = config.per_device_train_batch
+#     valid_batch_size = config.per_device_valid_batch
+#     train_data, valid_data = load_and_preprocess_data(config, tokenizer)
 
-    train_data, valid_data = load_and_preprocess_data(config, tokenizer)
-    # print(train_data[0:4])
+#     collator = DataCollatorForLeftPadding(
+#         tokenizer,
+#         model,
+#         padding=True,
+#         return_tensors="pt",
+#         pad_to_multiple_of=8,
+#     )
 
-    collator = DataCollatorForLeftPadding(
-        tokenizer,
-        model,
-        padding=True,
-        return_tensors="pt",
-        pad_to_multiple_of=8,
-    )
-
-    batches = []
-    # for i in range(0, len(train_data), train_batch_size):
-    #     batch = train_data[i:i+train_batch_size]
-    #     features = [{k: batch[k][j] for k in batch.keys()} for j in range(train_batch_size)]
-    #     batches.append(features)
-    for i in range(0, len(valid_data), valid_batch_size):
-        batch = train_data[i:i+valid_batch_size]
-        features = [{k: batch[k][j] for k in batch.keys()} for j in range(valid_batch_size)]
-        batches.append(features)
+#     batches = []
+#     # for i in range(0, len(train_data), train_batch_size):
+#     #     batch = train_data[i:i+train_batch_size]
+#     #     features = [{k: batch[k][j] for k in batch.keys()} for j in range(train_batch_size)]
+#     #     batches.append(features)
+#     for i in range(0, len(valid_data), valid_batch_size):
+#         batch = train_data[i:i+valid_batch_size]
+#         features = [{k: batch[k][j] for k in batch.keys()} for j in range(valid_batch_size)]
+#         batches.append(features)
     
-    for batch in batches:
-        collator(batch)
+#     for batch in batches:
+#         collator(batch)
     
 
-
-
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
