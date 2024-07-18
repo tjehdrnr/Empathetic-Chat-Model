@@ -4,5 +4,8 @@ from typing import Dict
 def complute_metrics(eval_pred) -> Dict:
     preds, labels = eval_pred
 
-    for label in labels:
+    for pred, label in zip(preds, labels):
+        print(pred.argmax(-1))
         print(label)
+    
+    return {"none": None}

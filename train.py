@@ -27,12 +27,14 @@ def train(train_args: ArgumentParser):
     # """
     if "EEVE" in train_args.base_model:
         tokenizer.add_tokens("<|unused|>", special_tokens=True)
-        tokenizer.pad_token_id = 58944 # Use the newly added unk token 
+        tokenizer.pad_token_id = 58944 # Use the newly added unk token
         assert tokenizer.pad_token_id == 58944, "pad_token_id is not set to 58944"
     else:
         tokenizer.pad_token_id = 0 # Use an already existing unk token
         assert tokenizer.pad_token_id == 0, "pad_token_id is not set to 0"
     print(f"pad_token: {tokenizer.pad_token} pad_token_id: {tokenizer.pad_token_id}")
+
+    print(tokenizer)
 
     # Load and preprocess data.
     train_data, valid_data = load_and_preprocess_data(train_args, tokenizer)
@@ -111,7 +113,7 @@ def train(train_args: ArgumentParser):
         compute_metrics=complute_metrics,
         data_collator=DataCollatorForLeftPadding(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
-        )
+        ),
     )
 
     model.config.use_cache = False
@@ -120,7 +122,11 @@ def train(train_args: ArgumentParser):
 
 
 def main():
+    import gc
     train_args = TrainArguments.define_args()
+    gc.collect()
+    torch.cuda.empty_cache()
+
     train(train_args)
 
 
