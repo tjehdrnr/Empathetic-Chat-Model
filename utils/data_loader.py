@@ -4,8 +4,8 @@ from datasets import load_dataset, Dataset, DatasetDict
 from transformers import AutoTokenizer
 from argparse import ArgumentParser
 
-from utils.arguments import TrainArguments
-from utils.prompter import Prompter
+from arguments import TrainArguments
+from prompter import Prompter
 
 
 def load_and_preprocess_data(train_args: ArgumentParser, tokenizer: AutoTokenizer) -> DatasetDict:
