@@ -10,12 +10,14 @@ def main(train_args):
         device_map="auto",
         torch_dtype=torch.float16,
     )
+    
     # Matches the tokenizer of the lora adapter and the base model.
     tokenizer = AutoTokenizer.from_pretrained(train_args.base_model, device_map="auto")
     if "EEVE" in train_args.base_model:
         tokenizer.add_special_tokens({"pad_token": "<|unused|>"})
         new_pad_token_id = tokenizer.convert_tokens_to_ids("<|unused|>")
         tokenizer.pad_token_id = new_pad_token_id
+        
         # Resize the embedding dim of the base model.
         base_model.resize_token_embeddings(len(tokenizer))
 
