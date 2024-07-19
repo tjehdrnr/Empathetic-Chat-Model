@@ -68,6 +68,7 @@ def train(train_args: ArgumentParser):
     )
     # A model that combines model with LoRA.
     model = get_peft_model(model, lora_config)
+    model.config.use_cache = False
 
     # If you specify this argument, the model resume training from checkpoint.
     checkpoint_path = None
@@ -88,7 +89,7 @@ def train(train_args: ArgumentParser):
         warmup_ratio=train_args.warmup_ratio,
         lr_scheduler_type=train_args.lr_scheduler_type,
         gradient_accumulation_steps=train_args.gradient_accumulation_steps,
-        # eval_accumulation_steps=train_args.eval_accumulation_steps,
+        eval_accumulation_steps=train_args.eval_accumulation_steps if train_args.valid_ratio > 0 else None,
         optim=train_args.optimizer,
         eval_strategy="steps" if train_args.valid_ratio > 0 else "no",
         eval_steps=train_args.eval_steps if train_args.valid_ratio > 0 else None,
@@ -108,19 +109,20 @@ def train(train_args: ArgumentParser):
         eval_dataset=valid_data,
         args=training_args,
         callbacks=[ParamNormCallback],
-        compute_metrics=compute_metrics,
+        compute_metrics=compute_metrics if train_args.use_compute_metrics else None,
         data_collator=DataCollatorForSeq2Seq(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
         ),
     )
-
-    model.config.use_cache = False
 
     trainer.train() if checkpoint_path is None else \
     trainer.train(resume_from_checkpoint=checkpoint_path)
 
     # Save lora adapter model.
     trainer.model.save_pretrained(train_args.lora_save_dir)
+
+    eval_result = trainer.evaluate(eval_dataset=valid_data)
+    print(eval_result)
 
 
 
