@@ -17,7 +17,7 @@ class TrainArguments:
             )
         p.add_argument("--data_path", type=str, default="Smoked-Salmon-s/empathetic_dialogues_ko")
         p.add_argument("--prompt_template_name", type=str, default="multi")
-        p.add_argument("--merged_model_dir", type=str, default="merged_model")
+        p.add_argument("--merged_model_dir", type=str, default="./merged_model")
         p.add_argument("--add_eos_token", type=bool, default=True)
         p.add_argument("--num_toys", type=int, default=0, help="Using few datasets for validation of all processes.")
         p.add_argument("--verbose", action="store_true", help="Print templated data.")
@@ -52,6 +52,7 @@ class TrainArguments:
         p.add_argument("--lora_rank", type=int, default=8)
         p.add_argument("--lora_alpha", type=int, default=32)
         p.add_argument("--lora_dropout", type=float, default=0.)
+        p.add_argument("--lora_save_dir", type=str, default="./lora_adapter")
         
         args = p.parse_args()
         if args.base_model == "eeve":

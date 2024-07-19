@@ -116,11 +116,13 @@ def train(train_args: ArgumentParser):
     )
 
     model.config.use_cache = False
-
     trainer.train(resume_from_checkpoint=checkpoint_path)
 
     eval_result = trainer.evaluate(eval_dataset=valid_data)
     print(eval_result)
+
+    # save lora adapter model
+    trainer.model.save_pretrained(train_args.lora_save_dir)
 
 
 def main():
