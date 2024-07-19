@@ -82,7 +82,7 @@ def train(train_args: ArgumentParser):
         per_device_train_batch_size=train_args.per_device_train_batch_size,
         per_device_eval_batch_size=train_args.per_device_eval_batch_size,
         num_train_epochs=train_args.num_epochs,
-        # max_steps=train_args.max_steps,
+        max_steps=train_args.max_steps,
         learning_rate=train_args.learning_rate,
         weight_decay=train_args.weight_decay,
         warmup_ratio=train_args.warmup_ratio,
