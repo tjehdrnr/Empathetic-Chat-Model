@@ -24,9 +24,10 @@ class TrainArguments:
         # training hyperparameters
         p.add_argument("--max_seq_len", type=int, default=512)
         p.add_argument("--valid_ratio", type=float, default=0.2)
-        p.add_argument("--per_device_train_batch", type=int, default=4)
-        p.add_argument("--per_device_valid_batch", type=int, default=4)
+        p.add_argument("--per_device_train_batch_size", type=int, default=4)
+        p.add_argument("--per_device_eval_batch_size", type=int, default=2)
         p.add_argument("--gradient_accumulation_steps", type=int, default=16)
+        p.add_argument("--eval_accumulation_steps", type=int, default=16)
         p.add_argument("--num_epochs", type=int, default=3)
         p.add_argument("--max_steps", type=int, default=0)
         p.add_argument("--learning_rate", type=float, default=3e-4)

@@ -9,11 +9,10 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer
 
 from utils.arguments import TrainArguments
-from utils.data_collator import DataCollatorForLeftPadding
 from utils.data_loader import load_and_preprocess_data
 from utils.train_utils import *
 from utils.callbacks import NormsCallback
-from utils.metrics import complute_metrics
+from utils.metrics import compute_metrics
 
 
 def train(train_args: ArgumentParser):  
@@ -33,8 +32,6 @@ def train(train_args: ArgumentParser):
         tokenizer.pad_token_id = 0 # Use an already existing unk token
         assert tokenizer.pad_token_id == 0, "pad_token_id is not set to 0"
     print(f"pad_token: {tokenizer.pad_token} pad_token_id: {tokenizer.pad_token_id}")
-
-    print(tokenizer)
 
     # Load and preprocess data.
     train_data, valid_data = load_and_preprocess_data(train_args, tokenizer)
@@ -76,24 +73,26 @@ def train(train_args: ArgumentParser):
 
     # If you specify this argument, the model resume training from checkpoint.
     if train_args.resume_from_checkpoint:
-        model, tokenizer = resume_from_checkpoint(train_args)
+        model, tokenizer, checkpoint_path = resume_from_checkpoint(train_args)
 
     print_trainable_parameters(model)
 
     # Define training arguments and train.
     training_args = TrainingArguments(
         # overwrite_output_dir=True,
-        per_device_train_batch_size=train_args.per_device_train_batch,
-        per_device_eval_batch_size=train_args.per_device_valid_batch,
+        per_device_train_batch_size=train_args.per_device_train_batch_size,
+        per_device_eval_batch_size=train_args.per_device_eval_batch_size,
         num_train_epochs=train_args.num_epochs,
         # max_steps=train_args.max_steps,
         learning_rate=train_args.learning_rate,
         weight_decay=train_args.weight_decay,
         warmup_ratio=train_args.warmup_ratio,
         lr_scheduler_type=train_args.lr_scheduler_type,
+        gradient_accumulation_steps=train_args.gradient_accumulation_steps,
+        # eval_accumulation_steps=train_args.eval_accumulation_steps,
         optim=train_args.optimizer,
         eval_strategy="steps" if train_args.valid_ratio > 0 else "no",
-        eval_steps=train_args.eval_steps,
+        eval_steps=train_args.eval_steps if train_args.valid_ratio > 0 else None,
         save_strategy="steps",
         save_steps=train_args.save_steps,
         output_dir=train_args.checkpoint_dir,
@@ -110,23 +109,22 @@ def train(train_args: ArgumentParser):
         eval_dataset=valid_data,
         args=training_args,
         # callbacks=[NormsCallback()],
-        compute_metrics=complute_metrics,
-        data_collator=DataCollatorForLeftPadding(
+        compute_metrics=compute_metrics,
+        data_collator=DataCollatorForSeq2Seq(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
         ),
     )
 
     model.config.use_cache = False
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=checkpoint_path)
+
+    eval_result = trainer.evaluate(eval_dataset=valid_data)
+    print(eval_result)
 
 
 def main():
-    import gc
     train_args = TrainArguments.define_args()
-    gc.collect()
-    torch.cuda.empty_cache()
-
     train(train_args)
 
 

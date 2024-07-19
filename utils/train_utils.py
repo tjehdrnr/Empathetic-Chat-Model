@@ -38,7 +38,8 @@ def resume_from_checkpoint(train_args: ArgumentParser):
     print(model)
     print(tokenizer)
 
-    return model, tokenizer
+    return model, tokenizer, checkpoint_path
+
 
 # Get lora trainable target modules from model.
 def get_target_modules(model) -> List[str]:
