@@ -25,9 +25,10 @@ def train(train_args: ArgumentParser):
     #  during the calculation process.
     # """
     if "EEVE" in train_args.base_model:
-        tokenizer.add_tokens("<|unused|>", special_tokens=True)
-        tokenizer.pad_token_id = 58944 # Use the newly added unk token
-        assert tokenizer.pad_token_id == 58944, "pad_token_id is not set to 58944"
+        tokenizer.add_special_tokens({"pad_token": "<|unused|>"})
+        new_pad_token_id = tokenizer.convert_tokens_to_ids("<|unused|>")
+        tokenizer.pad_token_id = new_pad_token_id # Use the newly added unk token
+        assert tokenizer.pad_token_id == new_pad_token_id, f"pad_token_id is not set to {new_pad_token_id}"
     else:
         tokenizer.pad_token_id = 0 # Use an already existing unk token
         assert tokenizer.pad_token_id == 0, "pad_token_id is not set to 0"
@@ -35,9 +36,6 @@ def train(train_args: ArgumentParser):
 
     # Load and preprocess data.
     train_data, valid_data = load_and_preprocess_data(train_args, tokenizer)
-    # for sample in valid_data:
-    #     print(sample['labels'])
-    #     break
 
     # Define bitsandbytes configurations and load model.
     bnb_config = BitsAndBytesConfig(
@@ -72,6 +70,7 @@ def train(train_args: ArgumentParser):
     model = get_peft_model(model, lora_config)
 
     # If you specify this argument, the model resume training from checkpoint.
+    checkpoint_path = ""
     if train_args.resume_from_checkpoint:
         model, tokenizer, checkpoint_path = resume_from_checkpoint(train_args)
 
@@ -116,13 +115,15 @@ def train(train_args: ArgumentParser):
     )
 
     model.config.use_cache = False
-    trainer.train(resume_from_checkpoint=checkpoint_path)
-
-    eval_result = trainer.evaluate(eval_dataset=valid_data)
-    print(eval_result)
+    
+    if checkpoint_path != "":
+        trainer.train(resume_from_checkpoint=checkpoint_path)
+    else:
+        trainer.train()
 
     # save lora adapter model
     trainer.model.save_pretrained(train_args.lora_save_dir)
+
 
 
 def main():

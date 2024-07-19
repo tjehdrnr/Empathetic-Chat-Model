@@ -60,7 +60,7 @@ class TrainArguments:
         elif args.base_model == "kullm":
             args.base_model = cls.kullm
         else:
-            raise ValueError(f"Unsupported base model value: {args.base_model}")
+            raise ValueError(f"Unsupport base model: {args.base_model}, choose between eeve or kullm.")
 
         return args
     

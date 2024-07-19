@@ -6,6 +6,9 @@ from torch.nn.functional import cross_entropy
 def compute_metrics(eval_pred) -> Dict:
     logits, labels = eval_pred
 
+    logits = torch.tensor(logits, dtype=torch.float32)
+    labels = torch.tensor(labels, dtype=torch.int64)
+
     total_loss = cross_entropy(
         logits.view(-1, logits.size(-1)),
         labels.view(-1),
@@ -21,8 +24,6 @@ def compute_metrics(eval_pred) -> Dict:
     
     
     
-
-
 # if __name__ == "__main__":
 #     import torch
 #     import numpy as np
