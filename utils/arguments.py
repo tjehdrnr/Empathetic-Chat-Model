@@ -18,7 +18,7 @@ class TrainArguments:
         p.add_argument("--data_path", type=str, default="Smoked-Salmon-s/empathetic_dialogues_ko")
         p.add_argument("--prompt_template_name", type=str, default="multi")
         p.add_argument("--merged_model_dir", type=str, default="./merged_model")
-        p.add_argument("--add_eos_token", type=bool, default=True)
+        p.add_argument("--add_eos_token", action="store_true")
         p.add_argument("--num_toys", type=int, default=0, help="Using few datasets for validation of all processes.")
         p.add_argument("--verbose", action="store_true", help="Print templated data.")
         # training hyperparameters
@@ -40,7 +40,7 @@ class TrainArguments:
         p.add_argument("--weight_decay", type=float, default=0.01)
         p.add_argument("--warmup_ratio", type=float, default=0.1)
         p.add_argument("--lr_scheduler_type", type=str, default="linear")
-        p.add_argument("--use_compute_metrics", type=bool, default=False)
+        p.add_argument("--use_compute_metrics", action="store_true")
         p.add_argument(
             "--resume_from_checkpoint", action="store_true",
             help="If you want to continue trainining the model, use this option.\
@@ -63,5 +63,3 @@ class TrainArguments:
             raise ValueError(f"Unsupport base model: {args.base_model}, choose between eeve or kullm.")
 
         return args
-    
-
