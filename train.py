@@ -11,7 +11,7 @@ from trl import SFTTrainer
 from utils.arguments import TrainArguments
 from utils.data_loader import load_and_preprocess_data
 from utils.train_utils import *
-from utils.callbacks import GetParamCallback
+from utils.callbacks import ParamNormCallback
 from utils.metrics import compute_metrics
 
 
@@ -108,7 +108,7 @@ def train(train_args: ArgumentParser):
         train_dataset=train_data,
         eval_dataset=valid_data,
         args=training_args,
-        callbacks=[GetParamNorm],
+        callbacks=[ParamNormCallback],
         compute_metrics=compute_metrics,
         data_collator=DataCollatorForSeq2Seq(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8

@@ -1,7 +1,7 @@
 from transformers import TrainerCallback
 
 
-class GetParamCallback(TrainerCallback):
+class ParamNormCallback(TrainerCallback):
 
     def on_log(self, args, state, control, **kwargs):
         """
