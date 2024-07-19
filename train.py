@@ -70,7 +70,7 @@ def train(train_args: ArgumentParser):
     model = get_peft_model(model, lora_config)
 
     # If you specify this argument, the model resume training from checkpoint.
-    checkpoint_path = ""
+    checkpoint_path = None
     if train_args.resume_from_checkpoint:
         model, tokenizer, checkpoint_path = resume_from_checkpoint(train_args)
 
@@ -115,13 +115,11 @@ def train(train_args: ArgumentParser):
     )
 
     model.config.use_cache = False
-    
-    if checkpoint_path != "":
-        trainer.train(resume_from_checkpoint=checkpoint_path)
-    else:
-        trainer.train()
 
-    # save lora adapter model
+    trainer.train() if checkpoint_path is None else \
+    trainer.train(resume_from_checkpoint=checkpoint_path)
+
+    # Save lora adapter model.
     trainer.model.save_pretrained(train_args.lora_save_dir)
 
 
