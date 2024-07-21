@@ -6,13 +6,14 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from transformers import TrainingArguments, DataCollatorForSeq2Seq
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 
 from utils.arguments import TrainArguments
 from utils.data_loader import load_and_preprocess_data
 from utils.train_utils import *
 from utils.callbacks import ParamNormCallback
 from utils.metrics import compute_metrics
+
 
 
 def train(train_args: ArgumentParser):  
@@ -49,6 +50,10 @@ def train(train_args: ArgumentParser):
         quantization_config=bnb_config,
         device_map={"":0}
     )
+    model = AutoModelForCausalLM.from_pretrained(
+        train_args.base_model,
+        device_map="cpu"
+    )
     # If you added new tokens to the tokenizer, resize the vocab dim of embedding.
     if "EEVE" in train_args.base_model:
         model.resize_token_embeddings(len(tokenizer))
@@ -68,14 +73,17 @@ def train(train_args: ArgumentParser):
     )
     # A model that combines model with LoRA.
     model = get_peft_model(model, lora_config)
-    model.config.use_cache = False
+
+    
 
     # If you specify this argument, the model resume training from checkpoint.
-    checkpoint_path = None
     if train_args.resume_from_checkpoint:
-        model, tokenizer, checkpoint_path = resume_from_checkpoint(train_args)
+        model, tokenizer = resume_from_checkpoint(train_args, bnb_config)
 
-    print_trainable_parameters(model)
+    model.config.use_cache = False
+
+    # print_trainable_parameters(model)
+    model.print_trainable_parameters()
 
     # Define training arguments and train.
     training_args = TrainingArguments(
@@ -107,6 +115,7 @@ def train(train_args: ArgumentParser):
         model,
         train_dataset=train_data,
         eval_dataset=valid_data,
+        tokenizer=tokenizer,
         args=training_args,
         callbacks=[ParamNormCallback],
         compute_metrics=compute_metrics if train_args.use_compute_metrics else None,
@@ -115,8 +124,7 @@ def train(train_args: ArgumentParser):
         ),
     )
 
-    trainer.train() if checkpoint_path is None else \
-    trainer.train(resume_from_checkpoint=checkpoint_path)
+    trainer.train()
 
     # Save lora adapter model.
     trainer.model.save_pretrained(train_args.lora_save_dir)

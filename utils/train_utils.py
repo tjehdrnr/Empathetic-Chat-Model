@@ -1,8 +1,8 @@
 import os, re
 from typing import List
 from argparse import ArgumentParser
-from transformers import AutoTokenizer
-from peft import PeftModel
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from peft import PeftModel, PeftConfig
 
 
 def print_trainable_parameters(model) -> None:
@@ -20,25 +20,32 @@ def print_trainable_parameters(model) -> None:
     )
 
 
-def resume_from_checkpoint(train_args: ArgumentParser):
+def resume_from_checkpoint(train_args: ArgumentParser, bnb_config):
     checkpoint_path = os.path.join(
             train_args.checkpoint_dir, train_args.checkpoint
         )
     checkpoint_path = os.path.join(os.getcwd(), checkpoint_path)
 
-    if train_args.checkpoint == "":
+    if train_args.checkpoint is None:
         raise Exception("You must specify a checkpoint. e.g. --checkpoint checkpoint-500")
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(
             f"Please check your checkpoint dir path. You specified path as '{checkpoint_path}'")
     
-    model = PeftModel.from_pretrained(checkpoint_path, is_trainable=True)
+    base_model = AutoModelForCausalLM.from_pretrained(
+        train_args.base_model,
+        quantization_config=bnb_config,
+        device_map={"":0}
+    )
+
+    model = PeftModel.from_pretrained(base_model, checkpoint_path, is_trainable=True)
     tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
+
     print(f"Resume model training from {train_args.checkpoint}")
     print(model)
     print(tokenizer)
 
-    return model, tokenizer, checkpoint_path
+    return model, tokenizer
 
 
 # Get lora trainable target modules from model.

@@ -47,7 +47,7 @@ class TrainArguments:
                     And then, specify the checkpoint path."
         )
         p.add_argument("--checkpoint_dir", type=str, default="checkpoints")
-        p.add_argument("--checkpoint", type=str, default="")
+        p.add_argument("--checkpoint", type=str, default=None)
         # lora hyperparameters
         p.add_argument("--lora_rank", type=int, default=8)
         p.add_argument("--lora_alpha", type=int, default=32)
