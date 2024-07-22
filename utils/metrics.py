@@ -4,7 +4,7 @@ import numpy as np
 import torch.nn.functional as F
 
 
-def compute_metrics(eval_pred) -> Dict:
+def get_perplexity(eval_pred):
     logits, labels = eval_pred
 
     logits = torch.tensor(logits, dtype=torch.float32)
@@ -20,11 +20,17 @@ def compute_metrics(eval_pred) -> Dict:
         labels.view(-1),
         reduction="none"
     )
-
     loss = float(loss[mask.view(-1)].sum()) / word_count
 
+    return np.exp(loss)
+
+
+def compute_metrics(eval_pred) -> Dict:
+
+    ppl = get_perplexity(eval_pred)
+
     return {
-        "ppl": np.exp(loss),
+        "ppl": ppl,
     }
     
     
