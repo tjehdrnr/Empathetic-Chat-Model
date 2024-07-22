@@ -1,4 +1,4 @@
-import os, re
+import json, os
 from typing import List
 from argparse import ArgumentParser
 
@@ -14,7 +14,7 @@ from utils.train_utils import *
 from utils.callbacks import ParamNormCallback
 from utils.metrics import compute_metrics
 
-
+from transformers import Trainer
 
 def train(train_args: ArgumentParser):  
     # Load tokenizer and set custormized options.
@@ -45,22 +45,31 @@ def train(train_args: ArgumentParser):
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.bfloat16
     )
+    if os.path.exists(train_args.checkpoint_dir):
+        bnb_config.to_json_file(
+            os.path.join(train_args.checkpoint_dir, "bnb_config.json")
+        )
+    else:
+        os.mkdir(train_args.checkpoint_dir)
+        bnb_config.to_json_file(
+            os.path.join(train_args.checkpoint_dir, "bnb_config.json")
+        )
+
     model = AutoModelForCausalLM.from_pretrained(
         train_args.base_model,
         quantization_config=bnb_config,
         device_map={"":0}
     )
-    model = AutoModelForCausalLM.from_pretrained(
-        train_args.base_model,
-        device_map="cpu"
-    )
+
     # If you added new tokens to the tokenizer, resize the vocab dim of embedding.
     if "EEVE" in train_args.base_model:
         model.resize_token_embeddings(len(tokenizer))
 
     # Improve memory efficiency and save GPU memory.
-    model.gradient_checkpointing_enable()
-    model = prepare_model_for_kbit_training(model)
+    model = prepare_model_for_kbit_training(
+        model,
+        use_gradient_checkpointing=True,
+    )
 
     # Define lora configurations and apply lora to model.
     lora_config = LoraConfig(
@@ -73,13 +82,6 @@ def train(train_args: ArgumentParser):
     )
     # A model that combines model with LoRA.
     model = get_peft_model(model, lora_config)
-
-    
-
-    # If you specify this argument, the model resume training from checkpoint.
-    if train_args.resume_from_checkpoint:
-        model, tokenizer = resume_from_checkpoint(train_args, bnb_config)
-
     model.config.use_cache = False
 
     # print_trainable_parameters(model)
@@ -108,7 +110,9 @@ def train(train_args: ArgumentParser):
         logging_dir=train_args.logging_dir,
         logging_steps=train_args.logging_steps,
         fp16=True, # Use mixed precision, same as using 'torch.autocast()'.
-        load_best_model_at_end=True if train_args.valid_ratio > 0 else False,        
+        load_best_model_at_end=True if train_args.valid_ratio > 0 else False,
+        save_safetensors=train_args.save_model_weights,
+        # group_by_length=True,
     )
 
     trainer = SFTTrainer(
@@ -123,6 +127,8 @@ def train(train_args: ArgumentParser):
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
         ),
     )
+    
+    model = torch.compile(model)
 
     trainer.train()
 

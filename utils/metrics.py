@@ -9,12 +9,25 @@ def compute_metrics(eval_pred) -> Dict:
     logits = torch.tensor(logits, dtype=torch.float32)
     labels = torch.tensor(labels, dtype=torch.int64)
 
-    total_loss = cross_entropy(
-        logits.view(-1, logits.size(-1)),
+    log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+
+    weight_mask = labels.view(-1) == -100
+    loss_weight = torch.ones(weight_mask.size(0))
+    loss_weight[weight_mask] = 0.
+
+    loss = torch.nn.functional.nll_loss(
+        log_probs.view(-1, log_probs.size(-1)),
         labels.view(-1),
-        ignore_index=-100,
-    )
-    perplexity = torch.exp(total_loss).item()
+        weights=loss_weight,
+        reduction="sum",
+    ).div(loss_weight.sum())
+
+    # total_loss = cross_entropy(
+    #     logits.view(-1, logits.size(-1)),
+    #     labels.view(-1),
+    #     ignore_index=-100,
+    # )
+    perplexity = torch.exp(loss).item()
 
     return {
         'ppl': perplexity,

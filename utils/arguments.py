@@ -41,13 +41,12 @@ class TrainArguments:
         p.add_argument("--warmup_ratio", type=float, default=0.1)
         p.add_argument("--lr_scheduler_type", type=str, default="linear")
         p.add_argument("--use_compute_metrics", action="store_true")
-        p.add_argument(
-            "--resume_from_checkpoint", action="store_true",
-            help="If you want to continue trainining the model, use this option.\
-                    And then, specify the checkpoint path."
-        )
-        p.add_argument("--checkpoint_dir", type=str, default="checkpoints")
-        p.add_argument("--checkpoint", type=str, default=None)
+        p.add_argument("--checkpoint_dir", type=str, default="checkpoints",
+                       help="Directory where checkpoints are saved. default='/checkpoints'")
+        p.add_argument("--checkpoint", type=str, default=None,
+                       help="Checkpoint to start continue training.")
+        p.add_argument("--save_model_weights", action="store_true", 
+                       help="Save the LoRA adapter model weights at each checkpoint.")
         # lora hyperparameters
         p.add_argument("--lora_rank", type=int, default=8)
         p.add_argument("--lora_alpha", type=int, default=32)
