@@ -21,7 +21,8 @@ class OnStepEnd(TrainerCallback):
 
     def on_step_end(self, args, state, control, **kwargs):
         """
-        Event called after logging the last logs.
+        Event called at the end of a training step. If using gradient accumulation, one training step might take
+        several inputs.
         """
         model = kwargs['model']
 
@@ -35,6 +36,6 @@ class OnStepEnd(TrainerCallback):
 
         total_param_norm = self.get_parameter_norm(model)
         
-        print(f"Step: {state.global_step} || Perplexity: {ppl} || Parameter norm: {total_param_norm}")
+        print(f"Step: {state.global_step} || Perplexity: {ppl:.3f} || Parameter norm: {format(total_param_norm, ',')}")
 
         return control
