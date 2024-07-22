@@ -1,20 +1,18 @@
 import json, os
-from typing import List
 from argparse import ArgumentParser
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from transformers import TrainingArguments, DataCollatorForSeq2Seq
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from trl import SFTTrainer, SFTConfig
+from trl import SFTTrainer
 
 from utils.arguments import TrainArguments
 from utils.data_loader import load_and_preprocess_data
 from utils.train_utils import *
-from utils.callbacks import ParamNormCallback
-from utils.metrics import compute_metrics
+from utils.callbacks import OnStepEnd
+from utils.metrics import compute_perplexity
 
-from transformers import Trainer
 
 def train(train_args: ArgumentParser):  
     # Load tokenizer and set custormized options.
@@ -121,8 +119,8 @@ def train(train_args: ArgumentParser):
         eval_dataset=valid_data,
         tokenizer=tokenizer,
         args=training_args,
-        callbacks=[ParamNormCallback],
-        compute_metrics=compute_metrics if train_args.use_compute_metrics else None,
+        callbacks=[OnStepEnd()],
+        compute_metrics=compute_perplexity if train_args.use_compute_metrics else None,
         data_collator=DataCollatorForSeq2Seq(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
         ),

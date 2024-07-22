@@ -39,6 +39,7 @@ def main(train_args):
     print(merged_model)
 
 
+
 if __name__ == "__main__":
     train_args = TrainArguments.define_args()
     main(train_args)

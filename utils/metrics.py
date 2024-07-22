@@ -1,32 +1,32 @@
 import torch
 from typing import Dict
-from torch.nn.functional import cross_entropy
+import numpy as np
+import torch.nn.functional as F
 
 
-def compute_metrics(eval_pred) -> Dict:
+def compute_perplexity(eval_pred) -> Dict:
     logits, labels = eval_pred
 
     logits = torch.tensor(logits, dtype=torch.float32)
     labels = torch.tensor(labels, dtype=torch.int64)
 
-    log_probs = torch.nn.functional.log_softmax(logits, dim=-1)
+    log_probs = F.log_softmax(logits, dim=-1)
 
-    weight_mask = labels.view(-1) == -100
-    loss_weight = torch.ones(weight_mask.size(0))
-    loss_weight[weight_mask] = 0.
+    mask = labels != -100
+    word_count = mask.sum().item()
 
-    loss = torch.nn.functional.nll_loss(
+    loss = F.nll_loss(
         log_probs.view(-1, log_probs.size(-1)),
         labels.view(-1),
-        weights=loss_weight,
-        reduction="sum",
-    ).div(loss_weight.sum())
+        reduction="none"
+    )
 
-    perplexity = torch.exp(loss).item()
+    loss = float(loss[mask.view(-1)].sum()) / word_count
 
     return {
-        'ppl': perplexity,
+        "ppl": np.exp(loss),
     }
+    
     
     
     
