@@ -11,7 +11,7 @@ from utils.prompter import Prompter
 def load_and_preprocess_data(train_args: ArgumentParser, tokenizer: AutoTokenizer) -> DatasetDict:
     try:
         dataset = load_dataset(train_args.data_path)
-    except:
+    except ValueError:
         print(f"Your dataset path sets {train_args.data_path}, please check it.")
     
     # Using for validation of all processes only.

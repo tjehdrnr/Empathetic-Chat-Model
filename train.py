@@ -10,8 +10,8 @@ from trl import SFTTrainer
 from utils.arguments import TrainArguments
 from utils.data_loader import load_and_preprocess_data
 from utils.train_utils import *
-from utils.callbacks import OnStepEnd
-from utils.metrics import compute_perplexity
+from utils.callbacks import ParamNormCallback
+from utils.metrics import compute_metrics
 
 
 def train(train_args: ArgumentParser):  
@@ -33,7 +33,7 @@ def train(train_args: ArgumentParser):
         assert tokenizer.pad_token_id == 0, "pad_token_id is not set to 0"
     print(f"pad_token: {tokenizer.pad_token} pad_token_id: {tokenizer.pad_token_id}")
 
-    # Load and preprocess data.
+    # Load preprocessed data.
     train_data, valid_data = load_and_preprocess_data(train_args, tokenizer)
 
     # Define bitsandbytes configurations and load model.
@@ -119,8 +119,8 @@ def train(train_args: ArgumentParser):
         eval_dataset=valid_data,
         tokenizer=tokenizer,
         args=training_args,
-        callbacks=[OnStepEnd()],
-        compute_metrics=compute_perplexity if train_args.use_compute_metrics else None,
+        callbacks=[ParamNormCallback()],
+        compute_metrics=compute_metrics if train_args.use_compute_metrics else None,
         data_collator=DataCollatorForSeq2Seq(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
         ),
@@ -139,6 +139,10 @@ def train(train_args: ArgumentParser):
 
 def main():
     train_args = TrainArguments.define_args()
+    
+    if not os.path.exits(train_args.checkpoint_dir):
+        os.mkdir(train_args.checkpoint_dir)
+
     parsed_config = os.path.join(train_args.checkpoint_dir, "parsed_args.json")
     with open(parsed_config, 'w') as f:
         json.dump(vars(train_args), f)

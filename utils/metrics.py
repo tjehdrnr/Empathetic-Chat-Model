@@ -4,7 +4,7 @@ import numpy as np
 import torch.nn.functional as F
 
 
-def compute_perplexity(eval_pred) -> Dict:
+def compute_metrics(eval_pred) -> Dict:
     logits, labels = eval_pred
 
     logits = torch.tensor(logits, dtype=torch.float32)
