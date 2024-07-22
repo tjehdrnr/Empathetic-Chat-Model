@@ -1,12 +1,14 @@
 import json, os
 from typing import Dict
 import safetensors
+import argparse
 
 import torch
 from utils.arguments import TrainArguments
 from utils.data_loader import load_and_preprocess_data
 from utils.callbacks import ParamNormCallback
 from utils.metrics import compute_metrics
+from utils.train_utils import get_parsed_arguments
 
 from trl import SFTTrainer
 from peft import PeftConfig, get_peft_model, prepare_model_for_kbit_training
@@ -31,7 +33,18 @@ def get_training_args(checkpoint: str) -> TrainArguments:
 
 
 def main(config: TrainingArguments):
+    """
+    If you want to resume training, you must have safetensor weight file in the checkpoint directory.
+    When training, you can save this file with the '--save_model_weights' option.
+    Once you have your weight file ready, run it as follows:
+        e.g. python continue_train.py --checkpoint checkpoint-200
+    You only need to specify a checkpoint at which to resume training.
+    """
     checkpoint = os.path.join(config.checkpoint_dir, config.checkpoint)
+    if not os.path.exists(config.checkpoint_dir):
+        raise FileNotFoundError(f"Can not find '{config.checkpoint_dir}' directory")
+    if not os.path.exists(checkpoint):
+        raise FileNotFoundError(f"Can not find '{config.checkpoint}' at '{config.checkpoint_dir}' directory")
 
     try:
         peft_config = PeftConfig.from_pretrained(checkpoint)
@@ -42,6 +55,8 @@ def main(config: TrainingArguments):
         )
     except FileNotFoundError as e:
         print(e)
+      
+    peft_config.inference_mode = False
 
     model = AutoModelForCausalLM.from_pretrained(
         peft_config.base_model_name_or_path,
@@ -49,48 +64,52 @@ def main(config: TrainingArguments):
         device_map={"":0},
     )
     tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-    model.resize_token_embeddings(len(tokenizer))
 
-    model.gradient_checkpointing_enable()
-    model = prepare_model_for_kbit_training(model)
+    if "EEVE" in training_args.base_model:
+        model.resize_token_embeddings(len(tokenizer))
+
+    model = prepare_model_for_kbit_training(
+        model,
+        use_gradient_checkpointing=True,
+    )
 
     train_data, valid_data = load_and_preprocess_data(config, tokenizer)
 
     model = get_peft_model(model, peft_config)
+    model.config.use_cache = False
 
-    state_dict = get_peft_model_state_dict(model)
-    print(state_dict)
-    # model = set_peft_model_state_dict(model, adapter_weights)
+    set_peft_model_state_dict(model, adapter_weights)
 
-    # model.config.use_cache = False
-    # model = torch.compile(model)
+    model.print_trainable_parameters()
 
-    # model.print_trainable_parameters()
+    trainer = SFTTrainer(
+        model,
+        train_dataset=train_data,
+        eval_dataset=valid_data,
+        tokenizer=tokenizer,
+        args=training_args,
+        callbacks=[ParamNormCallback],
+        compute_metrics=compute_metrics if config.use_compute_metrics else None,
+        data_collator=DataCollatorForSeq2Seq(
+            tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
+        )
+    )
+    print(':'*30 + f"Training resumes from {config.checkpoint}" + ':'*30)
+    trainer.train(resume_from_checkpoint=checkpoint)
 
-    # trainer = SFTTrainer(
-    #     model,
-    #     train_dataset=train_data,
-    #     valid_dataset=valid_data,
-    #     tokenizer=tokenizer,
-    #     args=training_args,
-    #     callbacks=[ParamNormCallback],
-    #     compute_metrics=compute_metrics,
-    #     data_collator=DataCollatorForSeq2Seq(
-    #         tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
-    #     )
-    # )
+    trainer.model.save_pretrained(config.lora_save_dir)
 
-    # trainer.train(resume_training_from_checkpoint=checkpoint)
-
-    # trainer.model.save_pretrained(config.lora_save_dir)
-
-    # eval_result = trainer.evaluate(eval_dataset=valid_data)
-    # print(eval_result)
-
+    if valid_data is not None:
+        eval_result = trainer.evaluate(eval_dataset=valid_data)
+        print(eval_result)
 
 
 
 if __name__ == "__main__":
-    train_args = TrainArguments.define_args()
-    main(train_args)
+    config = TrainArguments.define_args()
+
+    # Load arguments used in previous training.
+    config = get_parsed_arguments(config)
+
+    main(config)
 

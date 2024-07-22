@@ -1,6 +1,9 @@
 import os, re
+import json
 from typing import List
+from types import SimpleNamespace
 from argparse import ArgumentParser
+
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel, PeftConfig
 
@@ -20,32 +23,29 @@ def print_trainable_parameters(model) -> None:
     )
 
 
-def resume_from_checkpoint(train_args: ArgumentParser, bnb_config):
-    checkpoint_path = os.path.join(
-            train_args.checkpoint_dir, train_args.checkpoint
-        )
-    checkpoint_path = os.path.join(os.getcwd(), checkpoint_path)
+def get_parsed_arguments(train_args: ArgumentParser):
+    """
+    This function loads the previously trained arguments. 
+    If you want to train with a new arguments, you should not use this function.
+    """
+    config_path = os.path.join(train_args.checkpoint_dir, "parsed_args.json")
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+    except FileNotFoundError as e:
+        print(e)
 
-    if train_args.checkpoint is None:
-        raise Exception("You must specify a checkpoint. e.g. --checkpoint checkpoint-500")
-    if not os.path.exists(checkpoint_path):
-        raise FileNotFoundError(
-            f"Please check your checkpoint dir path. You specified path as '{checkpoint_path}'")
+    config = SimpleNamespace(**config)
     
-    base_model = AutoModelForCausalLM.from_pretrained(
-        train_args.base_model,
-        quantization_config=bnb_config,
-        device_map={"":0}
-    )
+    if train_args.checkpoint is not None:
+        config.checkpoint = train_args.checkpoint
+    else:
+        raise ValueError(
+            """You must specify a checkpoint at which to resume training. 
+            e.g) python continue_train.py --checkpoint checkpoint-500"""
+        )
 
-    model = PeftModel.from_pretrained(base_model, checkpoint_path, is_trainable=True)
-    tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
-
-    print(f"Resume model training from {train_args.checkpoint}")
-    print(model)
-    print(tokenizer)
-
-    return model, tokenizer
+    return config
 
 
 # Get lora trainable target modules from model.

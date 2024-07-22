@@ -17,9 +17,10 @@ def main(train_args):
         tokenizer.add_special_tokens({"pad_token": "<|unused|>"})
         new_pad_token_id = tokenizer.convert_tokens_to_ids("<|unused|>")
         tokenizer.pad_token_id = new_pad_token_id
-        
         # Resize the embedding dim of the base model.
         base_model.resize_token_embeddings(len(tokenizer))
+    else:
+        tokenizer.pad_token_id = 0 # unk token
 
     # Apply LoRA to the base model.
     merged_model = PeftModel.from_pretrained(
@@ -28,13 +29,13 @@ def main(train_args):
         device_map="auto",
         torch_dtype=torch.float16
     )
+
     # Merge base model and LoRA adapter.
     merged_model.merge_and_unload()
 
-    merged_model.save_pretrained(train_args.merged_model_dir)
-    tokenizer.save_pretrained(train_args.merged_model_dir)
+    merged_model.save_pretrained(train_args.merge_dir)
+    tokenizer.save_pretrained(train_args.merge_dir)
     print("The merge process has been completed.")
-
     print(merged_model)
 
 

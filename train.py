@@ -30,7 +30,7 @@ def train(train_args: ArgumentParser):
         new_pad_token_id = tokenizer.convert_tokens_to_ids("<|unused|>")
         tokenizer.pad_token_id = new_pad_token_id # Use the newly added unk token
         assert tokenizer.pad_token_id == new_pad_token_id, f"pad_token_id is not set to {new_pad_token_id}"
-    else:
+    else: # kullm model
         tokenizer.pad_token_id = 0 # Use an already existing unk token
         assert tokenizer.pad_token_id == 0, "pad_token_id is not set to 0"
     print(f"pad_token: {tokenizer.pad_token} pad_token_id: {tokenizer.pad_token_id}")
@@ -127,22 +127,26 @@ def train(train_args: ArgumentParser):
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
         ),
     )
-    
-    model = torch.compile(model)
 
     trainer.train()
 
     # Save lora adapter model.
     trainer.model.save_pretrained(train_args.lora_save_dir)
 
-    eval_result = trainer.evaluate(eval_dataset=valid_data)
-    print(eval_result)
+    if valid_data is not None:
+        eval_result = trainer.evaluate(eval_dataset=valid_data)
+        print(eval_result)
 
 
 
 def main():
     train_args = TrainArguments.define_args()
+    parsed_config = os.path.join(train_args.checkpoint_dir, "parsed_args.json")
+    with open(parsed_config, 'w') as f:
+        json.dump(vars(train_args), f)
+
     train(train_args)
+
 
 
 if __name__ == "__main__":

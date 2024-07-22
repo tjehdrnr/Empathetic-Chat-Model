@@ -22,11 +22,6 @@ def compute_metrics(eval_pred) -> Dict:
         reduction="sum",
     ).div(loss_weight.sum())
 
-    # total_loss = cross_entropy(
-    #     logits.view(-1, logits.size(-1)),
-    #     labels.view(-1),
-    #     ignore_index=-100,
-    # )
     perplexity = torch.exp(loss).item()
 
     return {
