@@ -4,14 +4,14 @@ import safetensors
 import argparse
 
 import torch
-from utils.arguments import TrainArguments
+from utils.arguments import Arguments
 from utils.data_loader import load_and_preprocess_data
-from utils.callbacks import ParamNormCallback
+from utils.callbacks import ParamNormCallback, SavePeftModelCallback
 from utils.metrics import compute_metrics
 from utils.train_utils import get_parsed_arguments
 
 from trl import SFTTrainer
-from peft import PeftConfig, get_peft_model, prepare_model_for_kbit_training
+from peft import PeftConfig, PeftModel, get_peft_model, prepare_model_for_kbit_training
 from peft import get_peft_model_state_dict, set_peft_model_state_dict
 from transformers import TrainingArguments, AutoTokenizer, AutoModelForCausalLM
 from transformers import DataCollatorForSeq2Seq
@@ -25,7 +25,7 @@ def get_bnb_config(config: TrainingArguments) -> Dict:
     return bnb_config
 
 
-def get_training_args(checkpoint: str) -> TrainArguments:
+def get_training_args(checkpoint: str) -> TrainingArguments:
     training_args_path = os.path.join(checkpoint, "training_args.bin")
     training_args = torch.load(training_args_path)
 
@@ -55,7 +55,7 @@ def main(config: TrainingArguments):
         )
     except FileNotFoundError as e:
         print(e)
-      
+
     peft_config.inference_mode = False
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -65,7 +65,7 @@ def main(config: TrainingArguments):
     )
     tokenizer = AutoTokenizer.from_pretrained(checkpoint)
 
-    if "EEVE" in training_args.base_model:
+    if "EEVE" in config.base_model:
         model.resize_token_embeddings(len(tokenizer))
 
     model = prepare_model_for_kbit_training(
@@ -78,6 +78,7 @@ def main(config: TrainingArguments):
     model = get_peft_model(model, peft_config)
     model.config.use_cache = False
 
+
     set_peft_model_state_dict(model, adapter_weights)
 
     model.print_trainable_parameters()
@@ -88,8 +89,8 @@ def main(config: TrainingArguments):
         eval_dataset=valid_data,
         tokenizer=tokenizer,
         args=training_args,
-        callbacks=[ParamNormCallback],
-        compute_metrics=compute_metrics if config.use_compute_metrics else None,
+        callbacks=[SavePeftModelCallback],
+        compute_metrics=compute_metrics,
         data_collator=DataCollatorForSeq2Seq(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
         )
@@ -106,7 +107,7 @@ def main(config: TrainingArguments):
 
 
 if __name__ == "__main__":
-    config = TrainArguments.define_args()
+    config = Arguments.define_train_args()
 
     # Load arguments used in previous training.
     config = get_parsed_arguments(config)

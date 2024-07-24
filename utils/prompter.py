@@ -50,7 +50,7 @@ class Prompter(object):
 
         res = self.template["prompt"].format(history=history, instruction=new_instruction)
 
-        if label:
+        if label is not None:
             res = f"{res}{label}"
         if self._verbose:
             print('*' * 100)

@@ -7,10 +7,10 @@ from transformers import TrainingArguments, DataCollatorForSeq2Seq
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer
 
-from utils.arguments import TrainArguments
+from utils.arguments import Arguments
 from utils.data_loader import load_and_preprocess_data
 from utils.train_utils import *
-from utils.callbacks import ParamNormCallback
+from utils.callbacks import ParamNormCallback, SavePeftModelCallback
 from utils.metrics import compute_metrics
 
 
@@ -43,20 +43,14 @@ def train(train_args: ArgumentParser):
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.bfloat16
     )
-    if os.path.exists(train_args.checkpoint_dir):
-        bnb_config.to_json_file(
-            os.path.join(train_args.checkpoint_dir, "bnb_config.json")
-        )
-    else:
-        os.mkdir(train_args.checkpoint_dir)
-        bnb_config.to_json_file(
-            os.path.join(train_args.checkpoint_dir, "bnb_config.json")
-        )
+    bnb_config.to_json_file(
+        os.path.join(train_args.checkpoint_dir, "bnb_config.json")
+    )
 
     model = AutoModelForCausalLM.from_pretrained(
         train_args.base_model,
         quantization_config=bnb_config,
-        device_map={"":0}
+        device_map={"":0},
     )
 
     # If you added new tokens to the tokenizer, resize the vocab dim of embedding.
@@ -97,10 +91,10 @@ def train(train_args: ArgumentParser):
         warmup_ratio=train_args.warmup_ratio,
         lr_scheduler_type=train_args.lr_scheduler_type,
         gradient_accumulation_steps=train_args.gradient_accumulation_steps,
-        eval_accumulation_steps=train_args.eval_accumulation_steps if train_args.valid_ratio > 0 else None,
+        eval_accumulation_steps=train_args.eval_accumulation_steps if train_args.do_eval else None,
         optim=train_args.optimizer,
-        eval_strategy="steps" if train_args.valid_ratio > 0 else "no",
-        eval_steps=train_args.eval_steps if train_args.valid_ratio > 0 else None,
+        eval_strategy="steps" if train_args.do_eval else "no",
+        eval_steps=train_args.eval_steps if train_args.do_eval else None,
         save_strategy="steps",
         save_steps=train_args.save_steps,
         output_dir=train_args.checkpoint_dir,
@@ -108,8 +102,8 @@ def train(train_args: ArgumentParser):
         logging_dir=train_args.logging_dir,
         logging_steps=train_args.logging_steps,
         fp16=True, # Use mixed precision, same as using 'torch.autocast()'.
-        load_best_model_at_end=True if train_args.valid_ratio > 0 else False,
-        save_safetensors=train_args.save_model_weights,
+        load_best_model_at_end=True if train_args.do_eval else False,
+        save_safetensors=train_args.save_safetensors,
         # group_by_length=True,
     )
 
@@ -119,8 +113,8 @@ def train(train_args: ArgumentParser):
         eval_dataset=valid_data,
         tokenizer=tokenizer,
         args=training_args,
-        callbacks=[ParamNormCallback()],
-        compute_metrics=compute_metrics if train_args.use_compute_metrics else None,
+        callbacks=[SavePeftModelCallback],
+        compute_metrics=compute_metrics,
         data_collator=DataCollatorForSeq2Seq(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
         ),
@@ -138,7 +132,7 @@ def train(train_args: ArgumentParser):
 
 
 def main():
-    train_args = TrainArguments.define_args()
+    train_args = Arguments.define_train_args()
     
     if not os.path.exits(train_args.checkpoint_dir):
         os.mkdir(train_args.checkpoint_dir)
