@@ -8,13 +8,14 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
 
 
 class EmpatheticChatbot:
-    MESSAGE_PREFIX = "질문: "
-    RESPONSE_PREFIX = "대답: "
 
     def __init__(
             self,
             config: ArgumentParser,
     ):
+        self.MESSAGE_PREFIX = "질문: "
+        self.RESPONSE_PREFIX = "대답: "
+
         self.config = config
         self.model = None
         self.tokenizer = None
@@ -25,12 +26,12 @@ class EmpatheticChatbot:
         if os.path.exists(config.merge_dir):
             self.model = AutoModelForCausalLM.from_pretrained(
                 config.merge_dir,
-                device_map="auto",
                 low_cpu_mem_usage=True,
                 torch_dtype=torch.bfloat16,
-            )
+            ).to("cuda", non_blocking=True)
             self.tokenizer = AutoTokenizer.from_pretrained(
                 config.merge_dir,
+                add_special_tokens=True,
             )
             self.prompter = Prompter(template_name="multi")
             self.streamer = TextStreamer(self.tokenizer, skip_prompt=True)
@@ -60,6 +61,7 @@ class EmpatheticChatbot:
             top_p=self.config.top_p if self.config.do_sample else None,
             repetition_penalty=self.config.repetition_penalty,
             max_new_tokens=self.config.max_new_tokens,
+            pad_token_id=self.tokenizer.pad_token_id,
         )
 
         generated_prompt = self.tokenizer.batch_decode(
@@ -68,15 +70,15 @@ class EmpatheticChatbot:
             # clean_up_tokenization_spaces=True,
         )
 
-        response = self.prompter.get_response(generated_prompt)
+        response = self.prompter.get_response(generated_prompt[0])
 
         return response
 
-    @classmethod
-    def start_conversation(cls):
+
+    def start_conversation(self):
         history = []
 
-        print("대화를 종료하고 싶으시다면 'exit', 새로운 대화를 원하시면 'clear'를 입력하세요.")
+        print("대화를 종료하고 싶으시다면 'exit', 새로운 대화를 원하시면 'clear'를 입력하세요.")  
         while True:
             message = input("### ME: ").strip()
             if message == "exit":
@@ -84,11 +86,15 @@ class EmpatheticChatbot:
             if message == "clear":
                 history = []
 
-            history.append(cls.MESSAGE_PREFIX + message)
+            if len(message) > 1:
+                history.append(self.MESSAGE_PREFIX + message)
             
-            response = cls.get_response('\n'.join(history)).strip()
+            response = self.get_response('\n'.join(history))
 
-            history.append(cls.RESPONSE_PREFIX + response)
+            history.append(self.RESPONSE_PREFIX + response)
+
+            print(history)
+
 
                         
         
