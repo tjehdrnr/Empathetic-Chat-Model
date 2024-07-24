@@ -4,38 +4,38 @@ from datasets import load_dataset, Dataset, DatasetDict
 from transformers import AutoTokenizer
 from argparse import ArgumentParser
 
-from utils.arguments import TrainArguments
+from utils.arguments import Arguments
 from utils.prompter import Prompter
 
 
-def load_and_preprocess_data(train_args: ArgumentParser, tokenizer: AutoTokenizer) -> DatasetDict:
+def load_and_preprocess_data(config: ArgumentParser, tokenizer: AutoTokenizer) -> DatasetDict:
     try:
-        dataset = load_dataset(train_args.data_path)
+        dataset = load_dataset(config.data_path)
     except ValueError:
-        print(f"Your dataset path sets {train_args.data_path}, please check it.")
+        print(f"Your dataset path sets {config.data_path}, please check it.")
     
     # Using for validation of all processes only.
-    if train_args.num_toys > 0:
+    if config.num_toys > 0:
         warnings.warn(
-            f"You are using a toy dataset of size {train_args.num_toys}. If you do not want this, set '--num_toys' to 0.",
+            f"You are using a toy dataset of size {config.num_toys}. If you do not want this, set '--num_toys' to 0.",
             UserWarning
         )
-        dataset = Dataset.from_dict(dataset['train'][:train_args.num_toys])
+        dataset = Dataset.from_dict(dataset['train'][:config.num_toys])
         dataset = DatasetDict({'train': dataset})
     
-    prompter = Prompter(template_name=train_args.prompt_template_name, verbose=train_args.verbose)
+    prompter = Prompter(template_name=config.prompt_template_name, verbose=config.verbose)
 
     def tokenize(prompt, add_eos_token=True):
         result = tokenizer(
             prompt,
             truncation=True,
-            max_length=train_args.max_seq_len,
+            max_length=config.max_seq_len,
             padding=False,
             return_tensors=None,
         )
         if(
             result["input_ids"][-1] != tokenizer.eos_token_id
-            and len(result["input_ids"]) < train_args.max_seq_len
+            and len(result["input_ids"]) < config.max_seq_len
             and add_eos_token
         ):
             result["input_ids"].append(tokenizer.eos_token_id)
@@ -52,20 +52,18 @@ def load_and_preprocess_data(train_args: ArgumentParser, tokenizer: AutoTokenize
         )
         tokenized_full_prompt = tokenize(full_prompt)
         user_prompt = prompter.generate_prompt(data_point['instruction'])
-        tokenized_user_prompt = tokenize(user_prompt, add_eos_token=train_args.add_eos_token)
-        user_prompt_len = len(tokenized_user_prompt["input_ids"]) - int(train_args.add_eos_token)
+        tokenized_user_prompt = tokenize(user_prompt, add_eos_token=config.add_eos_token)
+        user_prompt_len = len(tokenized_user_prompt["input_ids"]) - int(config.add_eos_token)
         tokenized_full_prompt["labels"] = [-100] * user_prompt_len + tokenized_full_prompt["labels"][user_prompt_len:]
 
         return tokenized_full_prompt
     
-    # For remove unnecessary columns.
-    original_fields = dataset['train'].column_names
-    if train_args.valid_ratio > 0:
-        tandv = dataset['train'].train_test_split(test_size=train_args.valid_ratio, shuffle=True, seed=42)
-        train_data = tandv['train'].map(generate_and_tokenize_prompt, remove_columns=original_fields)
-        valid_data = tandv['test'].map(generate_and_tokenize_prompt, remove_columns=original_fields)
+    if config.valid_ratio > 0:
+        tande = dataset['train'].train_test_split(test_size=config.valid_ratio, shuffle=True, seed=42)
+        train_dataset = tande['train'].map(generate_and_tokenize_prompt)
+        eval_dataset = tande['test'].map(generate_and_tokenize_prompt)
     else:
-        train_data = dataset['train'].map(generate_and_tokenize_prompt, remove_columns=original_fields)
-        valid_data = None
+        train_dataset = dataset['train'].map(generate_and_tokenize_prompt)
+        eval_dataset = None
     
-    return train_data, valid_data
+    return train_dataset, eval_dataset

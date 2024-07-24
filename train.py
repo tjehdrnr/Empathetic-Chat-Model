@@ -14,16 +14,16 @@ from utils.callbacks import ParamNormCallback, SavePeftModelCallback
 from utils.metrics import compute_metrics
 
 
-def train(train_args: ArgumentParser):  
+def train(config: ArgumentParser):  
     # Load tokenizer and set custormized options.
-    tokenizer = AutoTokenizer.from_pretrained(train_args.base_model)
+    tokenizer = AutoTokenizer.from_pretrained(config.base_model)
     tokenizer.padding_side = "left" # allow batched inference
     # """ 
     #  Replace pad_token with a new unk_token for left padding.
     #  This process causes label tokens set to -100 to be ignored
     #  during the calculation process.
     # """
-    if "EEVE" in train_args.base_model:
+    if "EEVE" in config.base_model:
         tokenizer.add_special_tokens({"pad_token": "<|unused|>"})
         new_pad_token_id = tokenizer.convert_tokens_to_ids("<|unused|>")
         tokenizer.pad_token_id = new_pad_token_id # Use the newly added unk token
@@ -34,7 +34,7 @@ def train(train_args: ArgumentParser):
     print(f"pad_token: {tokenizer.pad_token} pad_token_id: {tokenizer.pad_token_id}")
 
     # Load preprocessed data.
-    train_data, valid_data = load_and_preprocess_data(train_args, tokenizer)
+    train_dataset, eval_dataset = load_and_preprocess_data(config, tokenizer)
 
     # Define bitsandbytes configurations and load model.
     bnb_config = BitsAndBytesConfig(
@@ -44,17 +44,17 @@ def train(train_args: ArgumentParser):
         bnb_4bit_compute_dtype=torch.bfloat16
     )
     bnb_config.to_json_file(
-        os.path.join(train_args.output_dir, "bnb_config.json")
+        os.path.join(config.output_dir, "bnb_config.json")
     )
 
     model = AutoModelForCausalLM.from_pretrained(
-        train_args.base_model,
+        config.base_model,
         quantization_config=bnb_config,
         device_map={"":0},
     )
 
     # If you added new tokens to the tokenizer, resize the vocab dim of embedding.
-    if "EEVE" in train_args.base_model:
+    if "EEVE" in config.base_model:
         model.resize_token_embeddings(len(tokenizer))
 
     # Improve memory efficiency and save GPU memory.
@@ -65,9 +65,9 @@ def train(train_args: ArgumentParser):
 
     # Define lora configurations and apply lora to model.
     lora_config = LoraConfig(
-        r=train_args.lora_rank,
-        lora_alpha=train_args.lora_alpha,
-        lora_dropout=train_args.lora_dropout,
+        r=config.lora_rank,
+        lora_alpha=config.lora_alpha,
+        lora_dropout=config.lora_dropout,
         target_modules=get_target_modules(model),
         task_type="CAUSAL_LM",
         bias="none",
@@ -82,35 +82,35 @@ def train(train_args: ArgumentParser):
     # Define training arguments and train.
     training_args = TrainingArguments(
         # overwrite_output_dir=True,
-        per_device_train_batch_size=train_args.per_device_train_batch_size,
-        per_device_eval_batch_size=train_args.per_device_eval_batch_size,
-        num_train_epochs=train_args.num_epochs,
-        max_steps=train_args.max_steps,
-        learning_rate=train_args.learning_rate,
-        weight_decay=train_args.weight_decay,
-        warmup_ratio=train_args.warmup_ratio,
-        lr_scheduler_type=train_args.lr_scheduler_type,
-        gradient_accumulation_steps=train_args.gradient_accumulation_steps,
-        eval_accumulation_steps=train_args.eval_accumulation_steps if train_args.do_eval else None,
-        optim=train_args.optimizer,
-        eval_strategy="steps" if train_args.do_eval else "no",
-        eval_steps=train_args.eval_steps if train_args.do_eval else None,
+        per_device_train_batch_size=config.per_device_train_batch_size,
+        per_device_eval_batch_size=config.per_device_eval_batch_size,
+        num_train_epochs=config.num_epochs,
+        max_steps=config.max_steps,
+        learning_rate=config.learning_rate,
+        weight_decay=config.weight_decay,
+        warmup_ratio=config.warmup_ratio,
+        lr_scheduler_type=config.lr_scheduler_type,
+        gradient_accumulation_steps=config.gradient_accumulation_steps,
+        eval_accumulation_steps=config.eval_accumulation_steps if config.do_eval else None,
+        optim=config.optimizer,
+        eval_strategy="steps" if config.do_eval else "no",
+        eval_steps=config.eval_steps if config.do_eval else None,
         save_strategy="steps",
-        save_steps=train_args.save_steps,
-        output_dir=train_args.output_dir,
-        save_total_limit=train_args.save_total_limit,
-        logging_dir=train_args.logging_dir,
-        logging_steps=train_args.logging_steps,
+        save_steps=config.save_steps,
+        output_dir=config.output_dir,
+        save_total_limit=config.save_total_limit,
+        logging_dir=config.logging_dir,
+        logging_steps=config.logging_steps,
         fp16=True, # Use mixed precision, same as using 'torch.autocast()'.
-        load_best_model_at_end=True if train_args.do_eval else False,
-        save_safetensors=train_args.save_safetensors,
+        load_best_model_at_end=True if config.do_eval else False,
+        save_safetensors=config.save_safetensors,
         # group_by_length=True,
     )
 
     trainer = SFTTrainer(
         model,
-        train_dataset=train_data,
-        eval_dataset=valid_data,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
         tokenizer=tokenizer,
         args=training_args,
         callbacks=[SavePeftModelCallback],
@@ -123,25 +123,25 @@ def train(train_args: ArgumentParser):
     trainer.train()
 
     # Save lora adapter model.
-    trainer.model.save_pretrained(train_args.lora_save_dir)
+    trainer.model.save_pretrained(config.lora_save_dir)
 
-    if valid_data is not None:
-        eval_result = trainer.evaluate(eval_dataset=valid_data)
+    if eval_dataset is not None:
+        eval_result = trainer.evaluate(eval_dataset=eval_dataset)
         print(eval_result)
 
 
 
 def main():
-    train_args = Arguments.define_train_args()
+    config = Arguments.define_args()
     
-    if not os.path.exits(train_args.output_dir):
-        os.mkdir(train_args.output_dir)
+    if not os.path.exits(config.output_dir):
+        os.mkdir(config.output_dir)
 
-    parsed_config = os.path.join(train_args.output_dir, "parsed_args.json")
+    parsed_config = os.path.join(config.output_dir, "parsed_args.json")
     with open(parsed_config, 'w') as f:
-        json.dump(vars(train_args), f)
+        json.dump(vars(config), f)
 
-    train(train_args)
+    train(config)
 
 
 

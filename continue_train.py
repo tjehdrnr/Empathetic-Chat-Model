@@ -73,7 +73,7 @@ def main(config: TrainingArguments):
         use_gradient_checkpointing=True,
     )
 
-    train_data, valid_data = load_and_preprocess_data(config, tokenizer)
+    train_dataset, eval_dataset = load_and_preprocess_data(config, tokenizer)
 
     model = get_peft_model(model, peft_config)
     model.config.use_cache = False
@@ -85,8 +85,8 @@ def main(config: TrainingArguments):
 
     trainer = SFTTrainer(
         model,
-        train_dataset=train_data,
-        eval_dataset=valid_data,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
         tokenizer=tokenizer,
         args=training_args,
         callbacks=[SavePeftModelCallback],
@@ -100,17 +100,16 @@ def main(config: TrainingArguments):
 
     trainer.model.save_pretrained(config.lora_save_dir)
 
-    if valid_data is not None:
-        eval_result = trainer.evaluate(eval_dataset=valid_data)
+    if eval_dataset is not None:
+        eval_result = trainer.evaluate(eval_dataset=eval_dataset)
         print(eval_result)
 
 
 
 if __name__ == "__main__":
-    config = Arguments.define_train_args()
-
+    config = Arguments.define_args()
     # Load arguments used in previous training.
-    config = get_parsed_arguments(config)
+    new_config = get_parsed_arguments(config)
 
-    main(config)
+    main(new_config)
 

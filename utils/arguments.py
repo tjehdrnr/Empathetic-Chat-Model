@@ -7,7 +7,7 @@ class Arguments:
     kullm = "nlpai-lab/kullm-polyglot-5.8b-v2"
 
     @classmethod
-    def define_train_args(cls):
+    def define_args(cls):
         p = argparse.ArgumentParser()
 
         # model/data parameters
@@ -23,7 +23,7 @@ class Arguments:
         p.add_argument("--verbose", action="store_true", help="Print templated data.")
         # training hyperparameters
         p.add_argument("--max_seq_len", type=int, default=512)
-        p.add_argument("--valid_ratio", type=float, default=0.2)
+        p.add_argument("--eval_ratio", type=float, default=0.2)
         p.add_argument("--per_device_train_batch_size", type=int, default=4)
         p.add_argument("--per_device_eval_batch_size", type=int, default=2)
         p.add_argument("--gradient_accumulation_steps", type=int, default=8)
@@ -52,6 +52,14 @@ class Arguments:
         p.add_argument("--lora_alpha", type=int, default=32)
         p.add_argument("--lora_dropout", type=float, default=0.)
         p.add_argument("--lora_save_dir", type=str, default="./lora_adapter")
+        # inference hyperparameters
+        p.add_argument("--do_sample", action="store_true")
+        p.add_argument("--temperature", type=float, default=0.2)
+        p.add_argument("--top_k", type=int, default=40)
+        p.add_argument("--top_p", type=float, default=0.90)
+        p.add_argument("--num_beams", type=int, default=4)
+        p.add_argument("--repetition_penalty", type=float, default=1.2)
+        p.add_argument("--max_new_tokens", type=int, default=256)
         
         args = p.parse_args()
         if args.base_model == "eeve":
@@ -62,21 +70,3 @@ class Arguments:
             raise ValueError(f"Unsupport base model: {args.base_model}, choose between eeve or kullm.")
 
         return args
-    
-
-    @staticmethod
-    def define_inference_args():
-        p = argparse.ArgumentParser()
-
-        p.add_argument("--saved_model_dir", type=str, default="./merged_model")
-        p.add_argument("--do_sample", action="store_true")
-        p.add_argument("--temperature", type=float, default=0.2)
-        p.add_argument("--top_k", type=int, default=40)
-        p.add_argument("--tok_p", type=float, default=0.90)
-        p.add_argument("--num_beams", type=int, default=4)
-        p.add_argument("--max_new_tokens", type=int, default=256)
-
-        args = p.parse_args()
-
-        return args
-        

@@ -23,29 +23,30 @@ def print_trainable_parameters(model) -> None:
     )
 
 
-def get_parsed_arguments(train_args: ArgumentParser):
+def get_parsed_arguments(config: ArgumentParser):
     """
     This function loads the previously trained arguments. 
     If you want to train with a new arguments, you should not use this function.
     """
-    config_path = os.path.join(train_args.checkpoint_dir, "parsed_args.json")
+    saved_config = os.path.join(config.checkpoint_dir, "parsed_args.json")
+    new_config = None
     try:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
+        with open(saved_config, 'r') as f:
+            new_config = json.load(f)
     except FileNotFoundError as e:
         print(e)
 
-    config = SimpleNamespace(**config)
+    new_config = SimpleNamespace(**saved_config)
     
-    if train_args.checkpoint is not None:
-        config.checkpoint = train_args.checkpoint
+    if config.checkpoint is not None:
+        new_config.checkpoint = config.checkpoint
     else:
         raise ValueError(
             """You must specify a checkpoint at which to resume training. 
             e.g) python continue_train.py --checkpoint checkpoint-500"""
         )
 
-    return config
+    return new_config
 
 
 # Get lora trainable target modules from model.

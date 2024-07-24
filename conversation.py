@@ -8,90 +8,98 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
 
 
 class EmpatheticChatbot:
+    MESSAGE_PREFIX = "질문: "
+    RESPONSE_PREFIX = "대답: "
+
     def __init__(
             self,
             config: ArgumentParser,
     ):
-        try:
-            model = AutoModelForCausalLM.from_pretrained(
-                self.config.saved_model_dir,
-                device_map={"":0},
+        self.config = config
+        self.model = None
+        self.tokenizer = None
+        self.prompter = None
+        self.streamer = None
+        self.device = None
+
+        if os.path.exists(config.merge_dir):
+            self.model = AutoModelForCausalLM.from_pretrained(
+                config.merge_dir,
+                device_map="auto",
                 low_cpu_mem_usage=True,
                 torch_dtype=torch.bfloat16,
             )
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.config.saved_model_dir,
-                add_special_tokens=False,
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                config.merge_dir,
             )
-        except FileNotFoundError:
-            pass
+            self.prompter = Prompter(template_name="multi")
+            self.streamer = TextStreamer(self.tokenizer, skip_prompt=True)
+        else:
+            raise FileExistsError
         
-        prompter = Prompter(template_name="multi")
-        model.eval()
+        self.device = self.model.device
 
-        self.config = config
-        self.model = model
-        self.tokenizer = tokenizer
-        self.prompter = prompter
+        self.model.eval()
 
 
-    def get_reponse(self, instruction: Union[str]) -> Union[str]:
-        prompt = self.prompter.generate_prompt(
-            instruction=instruction,
-            label=None,
-        )
+    def get_response(self, message: str) -> str:
+        prompt = self.prompter.generate_prompt(message)
 
         inputs = self.tokenizer(
             prompt,
             return_tensors='pt',
             return_token_type_ids=False,
-        )
+        ).to(self.device)
 
-        result = self.model.generate(
+        outputs = self.model.generate(
             **inputs,
-            streamer=TextStreamer(self.tokenizer),
+            streamer=self.streamer,
             do_sample=self.config.do_sample,
             temperature=self.config.temperature,
-            top_k=self.config.top_k,
-            top_p=self.config.top_p,
+            top_k=self.config.top_k if self.config.do_sample else None,
+            top_p=self.config.top_p if self.config.do_sample else None,
+            repetition_penalty=self.config.repetition_penalty,
             max_new_tokens=self.config.max_new_tokens,
         )
 
-        response = self.tokenizer.batch_decode(
-            result,
+        generated_prompt = self.tokenizer.batch_decode(
+            outputs,
             skip_special_tokens=True,
             # clean_up_tokenization_spaces=True,
         )
 
+        response = self.prompter.get_response(generated_prompt)
+
         return response
 
-
-    def conversation(self):
+    @classmethod
+    def start_conversation(cls):
         history = []
-        instruction, response = "", ""
 
-        print("당신의 고민에 공감해주는 챗봇입니다. 닉네임을 정해주세요.")
-        print("대화를 종료하고 싶으시면 'exit', 새로운 대화를 원하시면 'flush'를 입력하세요.")
-
-        nickname = input("당신의 닉네임: ")
+        print("대화를 종료하고 싶으시다면 'exit', 새로운 대화를 원하시면 'clear'를 입력하세요.")
         while True:
-            instruction = input(f"{nickname}: ")
-            if instruction == "exit":
+            message = input("### ME: ").strip()
+            if message == "exit":
                 break
-            if instruction == "flush":
+            if message == "clear":
                 history = []
 
-            history.append("질문: " + instruction)
-            response = self.get_reponse(" ".join(history))
-            history.append("답변: " + response)
+            history.append(cls.MESSAGE_PREFIX + message)
+            
+            response = cls.get_response('\n'.join(history)).strip()
+
+            history.append(cls.RESPONSE_PREFIX + response)
+
+                        
+        
         
         
 
 
 if __name__ == "__main__":
     chatbot = EmpatheticChatbot(
-        Arguments.define_inference_args()
+        Arguments.define_args()
     )
 
-    chatbot.conversation()
+    chatbot.start_conversation()
 
