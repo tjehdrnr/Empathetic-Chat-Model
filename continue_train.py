@@ -18,7 +18,7 @@ from transformers import DataCollatorForSeq2Seq
 
 
 def get_bnb_config(config: TrainingArguments) -> Dict:
-    file_path = os.path.join(config.checkpoint_dir, "bnb_config.json")
+    file_path = os.path.join(config.output_dir, "bnb_config.json")
     with open(file_path, 'r') as f:
         bnb_config = json.load(f)
     
@@ -40,11 +40,11 @@ def main(config: TrainingArguments):
         e.g. python continue_train.py --checkpoint checkpoint-200
     You only need to specify a checkpoint at which to resume training.
     """
-    checkpoint = os.path.join(config.checkpoint_dir, config.checkpoint)
-    if not os.path.exists(config.checkpoint_dir):
-        raise FileNotFoundError(f"Can not find '{config.checkpoint_dir}' directory")
+    checkpoint = os.path.join(config.output_dir, config.checkpoint)
+    if not os.path.exists(config.output_dir):
+        raise FileNotFoundError(f"Can not find '{config.output_dir}' directory")
     if not os.path.exists(checkpoint):
-        raise FileNotFoundError(f"Can not find '{config.checkpoint}' at '{config.checkpoint_dir}' directory")
+        raise FileNotFoundError(f"Can not find '{config.checkpoint}' at '{config.output_dir}' directory")
 
     try:
         peft_config = PeftConfig.from_pretrained(checkpoint)

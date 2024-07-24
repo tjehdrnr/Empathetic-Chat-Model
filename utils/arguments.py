@@ -41,7 +41,7 @@ class Arguments:
         p.add_argument("--warmup_ratio", type=float, default=0.1)
         p.add_argument("--lr_scheduler_type", type=str, default="linear")
         p.add_argument("--do_eval", action="store_true")
-        p.add_argument("--checkpoint_dir", type=str, default="checkpoints",
+        p.add_argument("--output_dir", type=str, default="checkpoints",
                        help="Directory where checkpoints are saved. default='/checkpoints'")
         p.add_argument("--checkpoint", type=str, default=None,
                        help="Checkpoint to start continue training.")

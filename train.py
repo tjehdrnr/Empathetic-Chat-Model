@@ -44,7 +44,7 @@ def train(train_args: ArgumentParser):
         bnb_4bit_compute_dtype=torch.bfloat16
     )
     bnb_config.to_json_file(
-        os.path.join(train_args.checkpoint_dir, "bnb_config.json")
+        os.path.join(train_args.output_dir, "bnb_config.json")
     )
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -97,7 +97,7 @@ def train(train_args: ArgumentParser):
         eval_steps=train_args.eval_steps if train_args.do_eval else None,
         save_strategy="steps",
         save_steps=train_args.save_steps,
-        output_dir=train_args.checkpoint_dir,
+        output_dir=train_args.output_dir,
         save_total_limit=train_args.save_total_limit,
         logging_dir=train_args.logging_dir,
         logging_steps=train_args.logging_steps,
@@ -134,10 +134,10 @@ def train(train_args: ArgumentParser):
 def main():
     train_args = Arguments.define_train_args()
     
-    if not os.path.exits(train_args.checkpoint_dir):
-        os.mkdir(train_args.checkpoint_dir)
+    if not os.path.exits(train_args.output_dir):
+        os.mkdir(train_args.output_dir)
 
-    parsed_config = os.path.join(train_args.checkpoint_dir, "parsed_args.json")
+    parsed_config = os.path.join(train_args.output_dir, "parsed_args.json")
     with open(parsed_config, 'w') as f:
         json.dump(vars(train_args), f)
 

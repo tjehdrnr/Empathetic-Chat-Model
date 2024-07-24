@@ -30,11 +30,11 @@ class SavePeftModelCallback(TrainerCallback):
         """
         Event called after a checkpoint save.
         """
-        checkpoint_dir = os.path.join(
+        checkpoint = os.path.join(
             args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}"
         )
 
-        peft_model_path = os.path.join(checkpoint_dir, "adapter_model")
+        peft_model_path = os.path.join(checkpoint, "adapter_model")
         kwargs["model"].save_pretrained(peft_model_path)
         
         return control
