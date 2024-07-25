@@ -8,6 +8,11 @@ from utils.prompter import Prompter
 from utils.streamer import CustomStreamer
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
+import streamlit as st
+from streamlit_chat import message
+from configparser import ConfigParser
+
+
 
 class EmpatheticChatbot:
 
@@ -77,7 +82,7 @@ class EmpatheticChatbot:
         return response
 
 
-    def start_conversation(self):
+    def chat_validation(self):
         history = []
 
         print("Enter 'exit' to end conversation or 'clear' to flush conversation.")
@@ -97,17 +102,45 @@ class EmpatheticChatbot:
                     os.system("clear")
                 else:
                     os.system("cls")
-                self.start_conversation()
+                self.chat_validation()
             
             history.append(self.MESSAGE_PREFIX + message)
             response = self.get_response('\n'.join(history))
             history.append(self.RESPONSE_PREFIX + response) 
 
 
-if __name__ == "__main__":
-    chatbot = EmpatheticChatbot(
-        Arguments.define_args()
-    )
 
-    chatbot.start_conversation()
+def chat_with_streamlit(chatbot):
+    st.title("Empathetic-Chatbot Demo")
+    
+    if 'history' not in st.session_state:
+        st.session_state['history'] = []
+
+    for content in st.session_state.history:
+        print(content)
+        with st.chat_message(content['role']):
+            st.markdown(content['message'])
+    
+    message = st.chat_input("메시지를 입력하세요.")
+    # if message:
+    #     with st.chat_message('user', avatar='😔'):
+    #         st.markdown(message)
+    #         st.session_state.history.append({'role': 'user', 'message': message})
+    #     with st.chat_message('bot', avatar='🤖'):
+    #         response = f"{message}"
+    #         st.markdown(response)
+    #         st.session_state.history.append({'role': 'bot', 'message': response})
+
+
+
+
+
+if __name__ == "__main__":
+    # chatbot = EmpatheticChatbot(
+    #     Arguments.define_args()
+    # )
+
+    # chatbot.chat_validation()
+
+    chat_with_streamlit()
 
