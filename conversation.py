@@ -36,7 +36,6 @@ class EmpatheticChatbot:
                 add_special_tokens=True,
             )
             self.prompter = Prompter(template_name="multi")
-            # self.streamer = TextStreamer(self.tokenizer, skip_prompt=True)
             self.streamer = CustomStreamer(self.tokenizer, skip_prompt=True)
         else:
             raise FileExistsError
