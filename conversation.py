@@ -1,10 +1,12 @@
 import os
-from typing import Union, List
+import sys
 import torch
 from argparse import ArgumentParser
+
 from utils.arguments import Arguments
 from utils.prompter import Prompter
-from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
+from utils.streamer import CustomStreamer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 class EmpatheticChatbot:
@@ -22,7 +24,7 @@ class EmpatheticChatbot:
         self.prompter = None
         self.streamer = None
         self.device = None
-
+        
         if os.path.exists(config.merge_dir):
             self.model = AutoModelForCausalLM.from_pretrained(
                 config.merge_dir,
@@ -34,7 +36,8 @@ class EmpatheticChatbot:
                 add_special_tokens=True,
             )
             self.prompter = Prompter(template_name="multi")
-            self.streamer = TextStreamer(self.tokenizer, skip_prompt=True)
+            # self.streamer = TextStreamer(self.tokenizer, skip_prompt=True)
+            self.streamer = CustomStreamer(self.tokenizer, skip_prompt=True)
         else:
             raise FileExistsError
         
@@ -67,7 +70,7 @@ class EmpatheticChatbot:
         generated_prompt = self.tokenizer.batch_decode(
             outputs,
             skip_special_tokens=True,
-            # clean_up_tokenization_spaces=True,
+            clean_up_tokenization_spaces=True,
         )
 
         response = self.prompter.get_response(generated_prompt[0])
@@ -78,28 +81,28 @@ class EmpatheticChatbot:
     def start_conversation(self):
         history = []
 
-        print("대화를 종료하고 싶으시다면 'exit', 새로운 대화를 원하시면 'clear'를 입력하세요.")  
+        print("If you want to end the conversation, please enter 'exit'. If you want to refresh your conversation, please enter 'clear'.")
+        print("Please enter your nickname that you use to conversation.")
+        nickname = input("Nickname: ")
         while True:
-            message = input("### ME: ").strip()
+            message = input(f"{nickname}: ").strip()
             if message == "exit":
-                break
+                yorn = input("Are you really want to end the conversation? (Y/N)")
+                if yorn.upper() == 'Y':
+                    break
+                elif yorn.upper() == 'N':
+                    continue
+
             if message == "clear":
-                history = []
-
-            if len(message) > 1:
-                history.append(self.MESSAGE_PREFIX + message)
+                if sys.platform == "linux":
+                    os.system("clear")
+                else:
+                    os.system("cls")
+                self.start_conversation()
             
+            history.append(self.MESSAGE_PREFIX + message)
             response = self.get_response('\n'.join(history))
-
-            history.append(self.RESPONSE_PREFIX + response)
-
-            print(history)
-
-
-                        
-        
-        
-        
+            history.append(self.RESPONSE_PREFIX + response) 
 
 
 if __name__ == "__main__":
