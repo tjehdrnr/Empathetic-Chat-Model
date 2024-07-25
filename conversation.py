@@ -81,8 +81,8 @@ class EmpatheticChatbot:
     def start_conversation(self):
         history = []
 
-        print("If you want to end the conversation, please enter 'exit'. If you want to refresh your conversation, please enter 'clear'.")
-        print("Please enter your nickname that you use to conversation.")
+        print("Enter 'exit' to end conversation or 'clear' to flush conversation.")
+        print("Please enter a nickname to use in conversation.")
         nickname = input("Nickname: ")
         while True:
             message = input(f"{nickname}: ").strip()
