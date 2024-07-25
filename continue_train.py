@@ -78,7 +78,6 @@ def main(config: TrainingArguments):
     model = get_peft_model(model, peft_config)
     model.config.use_cache = False
 
-
     set_peft_model_state_dict(model, adapter_weights)
 
     model.print_trainable_parameters()
@@ -89,12 +88,13 @@ def main(config: TrainingArguments):
         eval_dataset=eval_dataset,
         tokenizer=tokenizer,
         args=training_args,
-        callbacks=[SavePeftModelCallback],
+        # callbacks=[SavePeftModelCallback],
         compute_metrics=compute_metrics,
         data_collator=DataCollatorForSeq2Seq(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8
         )
     )
+    
     print(':'*30 + f"Training resumes from {config.checkpoint}" + ':'*30)
     trainer.train(resume_from_checkpoint=checkpoint)
 

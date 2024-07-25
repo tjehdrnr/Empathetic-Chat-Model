@@ -24,7 +24,7 @@ class ParamNormCallback(TrainerCallback):
 
         return control
 
-
+# This callback replaced with save_safetensors argument.
 class SavePeftModelCallback(TrainerCallback):
     def on_save(self, args, state, control, **kwargs):
         """

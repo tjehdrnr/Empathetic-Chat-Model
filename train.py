@@ -113,7 +113,7 @@ def train(config: ArgumentParser):
         eval_dataset=eval_dataset,
         tokenizer=tokenizer,
         args=training_args,
-        callbacks=[SavePeftModelCallback],
+        # callbacks=[SavePeftModelCallback],
         compute_metrics=compute_metrics,
         data_collator=DataCollatorForSeq2Seq(
             tokenizer, padding=True, return_tensors="pt", pad_to_multiple_of=8

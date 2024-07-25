@@ -6,3 +6,5 @@ transformers
 bitsandbytes
 trl
 dataclasses
+streamlit
+streamlit-chat
