@@ -6,5 +6,7 @@ transformers
 bitsandbytes
 trl
 dataclasses
+langchain
+langchain-community
 streamlit
 streamlit-chat
