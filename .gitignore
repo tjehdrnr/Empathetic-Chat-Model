@@ -12,6 +12,13 @@ __pycache__/
 
 # Secret keys
 secrets.ini
+finetune/logs/
+finetune/checkpoints/
+finetune/lora_adapter/
+finetune/merged_model/
+
+# Model weights
+fine
 
 # Distribution / packaging
 .Python

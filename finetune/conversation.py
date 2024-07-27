@@ -59,7 +59,7 @@ class Validator:
             **inputs,
             streamer=self.streamer,
             do_sample=self.config.do_sample,
-            temperature=self.config.temperature,
+            temperature=self.config.temperature if self.config.do_sample else None,
             top_k=self.config.top_k if self.config.do_sample else None,
             top_p=self.config.top_p if self.config.do_sample else None,
             repetition_penalty=self.config.repetition_penalty,

@@ -36,7 +36,7 @@ class EmphatheticChatbot:
             max_new_tokens=config.max_new_tokens,
             do_sample=config.do_sample,
             early_stopping=config.early_stopping,
-            temperature=config.temperature,
+            temperature=config.temperature if config.do_sample else None,
             top_k=config.tok_k if config.do_sample else None,
             top_p=config.tok_p if config.do_sample else None,
             repetition_penalty=config.repetition_penalty,
@@ -46,7 +46,7 @@ class EmphatheticChatbot:
         self.llm = HuggingFacePipeline(pipeline=pipe)
 
         self.prompt = PromptTemplate(
-            input_variables=["history", "instruction"], template=template,
+            input_variables=["history", "instruction"], template=template
         )
 
         self.model.use_cache = True
@@ -54,22 +54,25 @@ class EmphatheticChatbot:
     
 
     def get_response(self, message: str):
-        
+
         conversation = ConversationChain(
             llm=self.llm,
             prompt=self.prompt,
             memory=ConversationBufferMemory(
-                # memory_key="history",
+                memory_key="history",
                 human_prefix="### 명령어",
-                ai_prefix="### 응답"
+                ai_prefix="### 응답",
             ),
             input_key="instruction",
-            # output_key=
+            output_key="### 응답",
             verbose=False,
         )
 
-        # conversation.predict()
-        
+        response = conversation.predict(
+            instruction=message
+        )
+        print(response)
+        print(conversation.memory.load_memory_variables({}))
 
 
 
@@ -84,10 +87,11 @@ if __name__ == "__main__":
 
     with open(template_path, 'r', encoding='utf-8') as f:
         template = json.load(f).get('prompt')
-    
-    conversation = ConversationChain()
-    # chatbot = EmphatheticChatbot(config, template)
-    # chatbot.get_response()
+        
+    chatbot = EmphatheticChatbot(config, template)
+
+    message = "저 요즘 고민이 너무 많아요.."
+    chatbot.get_response(message)
 
 
 
