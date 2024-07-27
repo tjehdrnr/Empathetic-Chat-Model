@@ -1,8 +1,9 @@
+import os
 from transformers import TrainerCallback
+from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
 
 class ParamNormCallback(TrainerCallback):
-
     def on_log(self, args, state, control, **kwargs):
         """
         Event called after logging the last logs.
@@ -21,5 +22,20 @@ class ParamNormCallback(TrainerCallback):
         
         print(f"Step: {state.global_step} || Parameter Norm: {format(total_param_norm, ',')}")
 
+        return control
+
+# This callback replaced with save_safetensors argument.
+class SavePeftModelCallback(TrainerCallback):
+    def on_save(self, args, state, control, **kwargs):
+        """
+        Event called after a checkpoint save.
+        """
+        checkpoint = os.path.join(
+            args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}"
+        )
+
+        peft_model_path = os.path.join(checkpoint, "adapter_model")
+        kwargs["model"].save_pretrained(peft_model_path)
+        
         return control
     

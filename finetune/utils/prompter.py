@@ -43,14 +43,14 @@ class Prompter(object):
         new_instruction = instruction.split('\n')[-1]
         history = instruction[:-len(new_instruction)]
         
-        try: # if multi-turn case,
+        try:
             new_instruction = new_instruction.split("### 명령어: ")[1]
-        except: # if single-turn case,
+        except:
             new_instruction = new_instruction.split("### 명령어: ")[0]
 
         res = self.template["prompt"].format(history=history, instruction=new_instruction)
 
-        if label:
+        if label is not None:
             res = f"{res}{label}"
         if self._verbose:
             print('*' * 100)
@@ -60,7 +60,7 @@ class Prompter(object):
         return res
 
 
-    # def get_response(self, output: str) -> str:
-    #     return output.split(self.template["response_split"])[1].strip()
+    def get_response(self, output: str) -> str:
+        return output.rsplit(self.template["response_split"], 1)[-1].strip()
 
         

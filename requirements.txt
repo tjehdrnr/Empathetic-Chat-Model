@@ -1,3 +1,4 @@
+# python==3.11.9
 torch
 datasets
 peft
@@ -6,3 +7,7 @@ transformers
 bitsandbytes
 trl
 dataclasses
+langchain
+langchain-community
+streamlit
+streamlit-chat
