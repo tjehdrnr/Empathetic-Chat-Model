@@ -1,17 +1,27 @@
 import json, os
 import torch
 import warnings
+
 from argparse import ArgumentParser
+from arguments import Arguments
 
 from langchain.prompts import PromptTemplate
 from langchain.chains.conversation.base import ConversationChain
 from langchain.memory import ConversationBufferMemory
+from langchain_core.output_parsers import StrOutputParser
 from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
-
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 
-from arguments import Arguments
 
+
+class CustomParser(StrOutputParser):
+    def __init__(self):
+        super().__init__()
+    
+    def parse(self, text: str) -> str:
+        # Returns the last response only.
+        text = text.rsplit("### 응답:", 1)[-1].strip()
+        return text
 
 
 class EmphatheticChatbot:
@@ -45,15 +55,14 @@ class EmphatheticChatbot:
 
         self.llm = HuggingFacePipeline(pipeline=pipe)
 
-        self.prompt = PromptTemplate(
-            input_variables=["history", "instruction"], template=template
-        )
+        self.prompt = PromptTemplate.from_template(template)
 
         self.model.use_cache = True
         self.model.eval()
     
 
     def get_response(self, message: str):
+        # input_dict = {"instruction": message}
 
         conversation = ConversationChain(
             llm=self.llm,
@@ -64,16 +73,27 @@ class EmphatheticChatbot:
                 ai_prefix="### 응답",
             ),
             input_key="instruction",
-            output_key="### 응답",
+            output_parser=CustomParser(),
             verbose=False,
         )
 
         response = conversation.predict(
-            instruction=message
+            instruction="어제는 수학 공부를 했어요. 수학책 129페이지까지 했어요."
         )
         print(response)
-        print(conversation.memory.load_memory_variables({}))
 
+
+        # print(conversation.memory.load_memory_variables({})['history'])
+
+        response = conversation.predict(
+            instruction="요즘 공부가 너무 재미있어요. 오늘은 과학 공부를 하려고요."
+        )
+        print(response)
+
+        response = conversation.predict(
+            instruction="과학 공부하기 전에 어제 했던 공부 복습 좀 해야겠어요. 제가 어제 수학책을 어디까지 했었죠?"
+        )
+        print(response)
 
 
 
