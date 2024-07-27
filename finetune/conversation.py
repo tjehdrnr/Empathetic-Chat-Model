@@ -3,7 +3,7 @@ import sys
 import torch
 from argparse import ArgumentParser
 
-from utils.arguments import Arguments
+from arguments import Arguments
 from utils.prompter import Prompter
 from utils.streamer import CustomStreamer
 from transformers import AutoTokenizer, AutoModelForCausalLM

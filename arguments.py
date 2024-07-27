@@ -59,7 +59,7 @@ class Arguments:
         p.add_argument("--top_p", type=float, default=0.90)
         p.add_argument("--num_beams", type=int, default=4)
         p.add_argument("--repetition_penalty", type=float, default=1.2)
-        p.add_argument("--max_new_tokens", type=int, default=256)
+        p.add_argument("--max_new_tokens", type=int, default=128)
         
         args = p.parse_args()
         if args.base_model == "eeve":
@@ -70,3 +70,23 @@ class Arguments:
             raise ValueError(f"Unsupport base model: {args.base_model}, choose between eeve or kullm.")
 
         return args
+    
+    
+    def demo_args():
+        p = argparse.ArgumentParser()
+
+        p.add_argument("--model_path", type=str, default="finetune/merged_model")
+        p.add_argument("--template_path", type=str, default="finetune/templates/multi.json")
+        p.add_argument("--gpu_id", type=int, default=-1)
+        p.add_argument("--min_new_tokens", type=int, default=10)
+        p.add_argument("--max_new_tokens", type=int, default=128)
+        p.add_argument("--do_sample", action="store_true")
+        p.add_argument("--early_stopping", action="store_true")
+        p.add_argument("--temperature", type=float, default=0.4)
+        p.add_argument("--top_k", type=int, default=30)
+        p.add_argument("--top_p", type=float, default=0.90)
+        p.add_argument("--repetition_penalty", type=float, default=1.2)
+
+        config = p.parse_args()
+
+        return config

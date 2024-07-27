@@ -1,7 +1,7 @@
 import os
 import torch
 from argparse import ArgumentParser
-from utils.arguments import Arguments
+from arguments import Arguments
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
 from transformers import AutoModelForCausalLM, AutoTokenizer

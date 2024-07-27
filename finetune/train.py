@@ -7,7 +7,7 @@ from transformers import TrainingArguments, DataCollatorForSeq2Seq
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer
 
-from utils.arguments import Arguments
+from arguments import Arguments
 from utils.data_loader import load_and_preprocess_data
 from utils.train_utils import *
 from utils.callbacks import ParamNormCallback, SavePeftModelCallback

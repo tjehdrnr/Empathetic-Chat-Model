@@ -4,7 +4,7 @@ import safetensors
 import argparse
 
 import torch
-from utils.arguments import Arguments
+from arguments import Arguments
 from utils.data_loader import load_and_preprocess_data
 from utils.callbacks import ParamNormCallback, SavePeftModelCallback
 from utils.metrics import compute_metrics
