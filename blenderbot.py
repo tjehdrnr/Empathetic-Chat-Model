@@ -1,8 +1,7 @@
-import streamlit as st
-from streamlit_chat import message
+# import streamlit as st
+# from streamlit_chat import message
 from configparser import ConfigParser
 
-from conversation import EmpatheticChatbot
 
 
 config = ConfigParser()
@@ -14,8 +13,8 @@ API_TOKEN = api_key
 headers = {"Authorization": f"Bearer {API_TOKEN}"}
 
  
-if 'history' not in st.session_state:
-    st.session_state['history'] = []
+# if 'history' not in st.session_state:
+#     st.session_state['history'] = []
 
  
 # def query(payload):
@@ -23,9 +22,9 @@ if 'history' not in st.session_state:
 # 	return response.json()
  
  
-with st.form('form', clear_on_submit=True):
-    user_input = st.text_input('You: ', '', key='input')
-    submitted = st.form_submit_button('Send')
+# with st.form('form', clear_on_submit=True):
+#     user_input = st.text_input('You: ', '', key='input')
+#     submitted = st.form_submit_button('Send')
  
 # if submitted and user_input:
 #     output = query({
