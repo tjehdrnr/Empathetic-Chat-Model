@@ -10,9 +10,6 @@ __pycache__/
 # C extensions
 *.so
 
-# Secret keys
-secrets.ini
-
 # Model weights and logs
 finetune/logs/
 finetune/checkpoints/
