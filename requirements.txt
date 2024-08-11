@@ -1,5 +1,5 @@
 # python.exe pip install --upgrade pip
-torch
+torch==2.3.0
 datasets
 peft
 accelerate
@@ -8,10 +8,9 @@ bitsandbytes
 trl
 dataclasses
 langchain==0.2.8
-langchain-community==0.2.7
-langchain-core==0.2.19
-langchain-openai==0.1.16
+faiss-cpu
 overrides==7.7.0
 streamlit
-streamlit-chat
 python-dotenv==1.0.1
+FlagEmbedding
+ipykernel
