@@ -32,7 +32,7 @@ class Prompter(object):
         # returns the full prompt from optional input
         # if a label (=response, =output) is provided, it's also appended.
 
-        # process for multi-turn conversation.
+        # processesor for multi-turn conversation.
         def converter(sentence):
             result = re.sub(r"질문\s*", "### 명령어", sentence)
             result = re.sub(r"답변\s*", "### 응답", result)

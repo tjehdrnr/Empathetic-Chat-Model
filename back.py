@@ -6,12 +6,16 @@ from argparse import ArgumentParser
 from arguments import Arguments
 import dotenv
 
+import backend.docstore as docstore
 from langchain.prompts import PromptTemplate
 from langchain.chains.conversation.base import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain.memory import VectorStoreRetrieverMemory
+from langchain.docstore import InMemoryDocstore
+from langchain.vectorstores import FAISS
+
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 
 from langchain_openai import OpenAIEmbeddings
@@ -60,21 +64,38 @@ class EmphatheticChatbot:
 
         self.llm = HuggingFacePipeline(pipeline=pipe)
 
+        self.vectorstore = FAISS(
+            embedding_function=OpenAIEmbeddings(),
+            index=docstore.IndexFlatL2(1536),
+            docstore=InMemoryDocstore({}),
+            normalize_L2=False,
+        )
+
+
+        self.retriever = self.vectorstore.as_retriever(
+            search_kwargs={'k': 2},
+        )
+
+        self.memory = VectorStoreRetrieverMemory(
+            retriever=self.retriever,
+            memory_key="history",
+            input_key="instruction",
+            return_docs=False,
+        )
+
         self.prompt = PromptTemplate(
             input_variables=['history', 'instruction'], template=template
         )
 
-        embedding_size = 1536
-        index = Fai
-        embedding_model = OpenAIEmbeddings(model="text-embedding-3-small"
-                                           )
-
-        self.chain = ConversationChain(
+        self.conversation_chain = ConversationChain(
             llm=self.llm,
             prompt=self.prompt,
-            memory=VectorStoreRetrieverMemory(retriever=retriever)
+            memory=self.memory,
+            # input_key="instruction",
+            output_parser=CustomParser(),
+            verbose=True,
         )
-
+        
         self.model.use_cache = True
         self.model.eval()
     
@@ -82,37 +103,10 @@ class EmphatheticChatbot:
     def get_response(self, message: str):
         # input_dict = {"instruction": message}
 
-        conversation = ConversationChain(
-            llm=self.llm,
-            prompt=self.prompt,
-            memory=ConversationBufferMemory(
-                memory_key="history",
-                human_prefix="### 명령어",
-                ai_prefix="### 응답",
-            ),
-            input_key="instruction",
-            output_parser=CustomParser(),
-            verbose=False,
-        
-        )
-
-        response = conversation.predict(
+        response = self.conversation_chain.predict(
             instruction="어제는 수학 공부를 했어요. 수학책 129페이지까지 했어요."
         )
-        print(response)
-
-
-        # print(conversation.memory.load_memory_variables({})['history'])
-
-        response = conversation.predict(
-            instruction="요즘 공부가 너무 재미있어요. 오늘은 과학 공부를 하려고요."
-        )
-        print(response)
-
-        response = conversation.predict(
-            instruction="과학 공부하기 전에 어제 했던 공부 복습 좀 해야겠어요. 제가 어제 수학책을 어디까지 했었죠?"
-        )
-        print(response)
+        print(self.conversation_chain.memory.load_memory_variables)
 
 
 

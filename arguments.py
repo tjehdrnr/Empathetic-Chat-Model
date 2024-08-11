@@ -72,7 +72,7 @@ class Arguments:
         return args
     
     
-    def demo_args():
+    def app_args():
         p = argparse.ArgumentParser()
 
         p.add_argument("--model_path", type=str, default="finetune/merged_model")
