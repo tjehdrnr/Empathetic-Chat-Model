@@ -27,9 +27,9 @@ def initialize_session_state(user_id: str):
 
 
 def streamer(response):
-    for w in response.split():
-        yield w
-        time.sleep(0.1)
+    for word in response.split():
+        yield word + " "
+        time.sleep(0.05)
 
 
 @st.dialog("Login Page")
@@ -169,7 +169,7 @@ def inference_settings():
         inference_args['do_sample'] = do_sample
 
         if do_sample:
-            temperature = st.slider("temperature", min_value=0.0, max_value=1.0, value=0.7)
+            temperature = st.slider("temperature", min_value=0.0, max_value=1.0, value=0.25)
             top_k = st.slider("top_k", min_value=0, max_value=100, value=30)
             top_p = st.slider("top_p", min_value=0.0, max_value=1.0, value=0.9)
 
@@ -209,7 +209,6 @@ def main():
             with clear:
                 if st.button(":material/clear_all:", help="Clear all messages and histories"):
                     controller.clear_all()
-                    st.rerun()
             # with save:
             #     contents = controller.save_messages()
             #     st.download_button(":material/save:", contents, help="Download message contents as .txt file")

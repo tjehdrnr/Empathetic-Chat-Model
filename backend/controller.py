@@ -10,7 +10,7 @@ from FlagEmbedding import BGEM3FlagModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from langchain.prompts import PromptTemplate
 
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
 import dotenv
 
 class AppController:
@@ -23,17 +23,18 @@ class AppController:
     
         self.config = Arguments.app_args()
 
-        # if os.path.exists(self.config.model_path):
-            # self.model = AutoModelForCausalLM.from_pretrained(
-            #     config.model_path,
-            #     torch_dtype=torch.bfloat16,
-            #     low_cpu_mem_usage=True,
-            # ).to(f"cuda:{config.gpu_id}", non_blocking=True)
+        if os.path.exists(self.config.model_path):
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.config.model_path,
+                torch_dtype=torch.bfloat16,
+                low_cpu_mem_usage=True,
+            ).to("cuda:0", non_blocking=True)
 
-            # self.tokenizer = AutoTokenizer.from_pretrained(config.model_path)
-        self.model = ChatOpenAI()
-        # else:
-        #     raise FileExistsError(f"Can not find a model that you specified: {self.config.model_path}")
+            self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_path)
+        else:
+            raise FileExistsError(f"Can not find a model that you specified: {self.config.model_path}")
+        
+        # self.model = ChatOpenAI()
         
         self.docstore = DocumentStore(user_id)
 
@@ -76,14 +77,31 @@ class AppController:
             instruction=user_input,
         )
 
-        # inputs = self.tokenizer(
-        #     prompt,
-        #     return_tensors='pt',
-        #     return_token_type_ids=False,
-        # ).to(self.model.device)
+        inputs = self.tokenizer(
+            prompt,
+            return_tensors='pt',
+            return_token_type_ids=False,
+        ).to(self.model.device)
 
-        # 모델에 맞춰서 다시 작성해야함, do_sample 등등..
-        response = self.model.invoke(prompt).content
+        outputs = self.model.generate(
+            **inputs,
+            do_sample=kwargs['do_sample'],
+            temperature=kwargs.get('temperature', None),
+            top_k=kwargs.get('top_k', None),
+            top_p=kwargs.get('top_p', None),
+            repetition_penalty=kwargs['repetition_penalty'],
+            min_new_tokens=kwargs['min_new_tokens'],
+            max_new_tokens=kwargs['max_new_tokens'],
+            pad_token_id=self.tokenizer.pad_token_id,
+        )
+
+        generated_prompt = self.tokenizer.batch_decode(
+            outputs,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=True,
+        )
+
+        response = generated_prompt[0].rsplit('### 응답:', 1)[-1].strip()
 
         return response
     

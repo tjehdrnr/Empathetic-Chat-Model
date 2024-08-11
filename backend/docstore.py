@@ -64,6 +64,7 @@ class DocumentStore:
         """
         Delete all messages and conversation history
         """
+        self.start_time = time.time()
         self.messages = []
         self.history = []
 
