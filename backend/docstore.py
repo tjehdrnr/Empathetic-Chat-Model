@@ -58,18 +58,7 @@ class DocumentStore:
             logger.info(f"Updated history: {self.history[-1]}")
         
         return message
-
-    
-    def clear(self):
-        """
-        Delete all messages and conversation history
-        """
-        self.start_time = time.time()
-        self.messages = []
-        self.history = []
-
-        logger.info(f"Cleared all messages and history.")
-
+            
             
     def delete(self, _id: str) -> Union[int, None]:
         """
