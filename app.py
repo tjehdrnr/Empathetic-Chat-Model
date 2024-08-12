@@ -207,7 +207,7 @@ def main():
         with st.container():
             clear, save = st.columns([1, 1])
             with clear:
-                if st.button(":material/clear_all:", help="Clear all messages and histories"):
+                if st.button(":material/refresh:", help="Start a new chat"):
                     controller.clear_all()
             # with save:
             #     contents = controller.save_messages()

@@ -4,14 +4,19 @@ from arguments import Arguments
 
 import torch
 import faiss
+import logging
 from backend.retriever import FaissRetriever
 from backend.docstore import DocumentStore
 from FlagEmbedding import BGEM3FlagModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from langchain.prompts import PromptTemplate
 
-# from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI
 import dotenv
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 class AppController:
 
@@ -20,7 +25,8 @@ class AppController:
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-    
+        
+        self.user_id = user_id
         self.config = Arguments.app_args()
 
         if os.path.exists(self.config.model_path):
@@ -69,6 +75,8 @@ class AppController:
         history = ""
         if self.docstore.history:
             indices = indices[indices != -1]
+            print("History: ", self.docstore.history)
+            print("Indices: ", indices)
             top_k_history = [self.docstore.history[i]['text'] for i in indices]
             history = '\n'.join(top_k_history)
         
@@ -103,6 +111,8 @@ class AppController:
 
         response = generated_prompt[0].rsplit('### 응답:', 1)[-1].strip()
 
+        # response = self.model.invoke(prompt).content
+
         return response
     
     def delete_chat(self, _id: str):
@@ -110,9 +120,16 @@ class AppController:
         self.retriever.remove_id(target_history_index)
 
     def clear_all(self):
-        self.docstore.clear()
-        self.retriever.index.reset()
+        self.docstore = DocumentStore(self.user_id)
 
+        index = faiss.IndexFlatL2(1024)
+        index = faiss.IndexIDMap(index)
+        self.retriever = FaissRetriever(
+            embedding_model=BGEM3FlagModel('BAAI/bge-m3', use_fp16=True),
+            index=index, # Default: 1024 dim
+            max_length=512,
+            normalize_L2=True,
+        )
 
+        logger.info("Cleared all messages and history")
         
-
