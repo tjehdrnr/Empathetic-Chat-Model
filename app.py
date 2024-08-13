@@ -243,6 +243,9 @@ def main():
 
             response, history = controller.get_response(user_input, **inference_kwargs)
 
+            if not isinstance(response, tuple):
+                controller.docstore.add('assistant', response)
+            
             # Assistant's chat interface.
             if dpo_mode and inference_kwargs['do_sample']:
                 with st.container():
@@ -261,22 +264,21 @@ def main():
                     with st.chat_message('assistant', avatar=assistant_avatar):
                         st.write_stream(streamer(response))
             
-            if isinstance(response, tuple) and is_btn1:
+            if is_btn1 and not is_btn2:
                 controller.docstore.add('assistant', response[0])
                 controller.write_dpo_data(
                     context=history + '\n' + f"### 응답: {response[0]}",
                     chosen=response[0],
                     rejected=response[1],
                 )
-            elif isinstance(response, tuple) and is_btn2:
+            elif not is_btn1 and is_btn2:
                 controller.docstore.add('assistant', response[1])
                 controller.write_dpo_data(
                     context=history + '\n' + f"### 응답: {response[1]}",
                     chosen=response[1],
                     rejected=response[0],
                 )
-            else:
-                controller.docstore.add('assistant', response)
+            st.stop()
 
             controller.retriever.add_to_index(controller.docstore.history[-1])
         

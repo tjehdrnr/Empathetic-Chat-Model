@@ -163,7 +163,8 @@ class AppController:
 
         if os.path.exists(save_fn):
             original_data = pd.read_csv(save_fn, sep='\t', encoding='utf-8')
-            pd.concat([original_data, self.dpo_data]).to_csv(save_fn, encoding='utf-8')
+            result = pd.concat([original_data, self.dpo_data])
+            result.to_csv(save_fn, encoding='utf-8')
         else:
             self.dpo_data.to_csv(save_fn, sep='\t', encoding='utf-8')
     
