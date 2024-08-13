@@ -208,17 +208,17 @@ def main():
             
             inference_kwargs = inference_settings()
         
-        # User interactive menu widgets.
+        # User interactive widgets menubar.
         with st.container():
             clear, save, dpo, _ = st.columns([1, 1, 3, 5])
             with clear:
-                st.button(":material/refresh:",
-                          on_click=controller.clear_all(),
-                          help="Start a new chat")
+                is_clear = st.button(":material/refresh:", help="Start a new chat")
+                if is_clear:
+                    controller.clear_all()
             with save:
-                st.button(":material/save:",
-                          on_click=controller.save_dpo_data(),
-                          help="Save DPO data")
+                is_save = st.button(":material/save:", help="Save DPO data")
+                if is_save:
+                    controller.save_dpo_data()
             with dpo: 
                 dpo_mode = st.toggle("DPO Mode")
                 if dpo_mode:
@@ -242,53 +242,50 @@ def main():
                         st.session_state.delete_id = key
 
             response, history = controller.get_response(user_input, **inference_kwargs)
-            controller.docstore.add('assistant', response)
 
-        #     # Assistant's chat interface.
-        #     if dpo_mode and inference_kwargs['do_sample']:
-        #         with st.container():
-        #             with st.chat_message('assistant', avatar=assistant_avatar):
-        #                 res1, res2 = st.columns([5, 5])
-        #                 with res1:
-        #                     with st.container(border=True):
-        #                         res1 = st.write_stream(streamer(response1))
-        #                         st.button(":material/check:",
-        #                                    key='res1',
-        #                                    on_click=controller.save_dpo_data(
-        #                                        context=[
-        #                                            history + '\n' + f"### 명령어: {user_input}"
-        #                                         ],
-        #                                        chosen=[response1],
-        #                                        rejected=[response2],
-        #                                    ),
-        #                                    help="Select left one")
-        #                 with res2:
-        #                     with st.container(border=True):
-        #                         res2 = st.write_stream(streamer(response2))
-        #                         st.button(":material/check:",
-        #                                    key='res2',
-        #                                    on_click=controller.save_dpo_data(
-        #                                        context=[
-        #                                            history + '\n' + f"### 명령어: {user_input}"
-        #                                         ],
-        #                                        chosen=[response2],
-        #                                        rejected=[response1],
-        #                                    ),
-        #                                    help="Select right one")
-        #     else:
-        #         with st.container():
-        #             with st.chat_message('assistant', avatar=assistant_avatar):
-        #                 st.write_stream(streamer(response))
+            # Assistant's chat interface.
+            if dpo_mode and inference_kwargs['do_sample']:
+                with st.container():
+                    with st.chat_message('assistant', avatar=assistant_avatar):
+                        res1, res2 = st.columns([5, 5])
+                        with res1:
+                            with st.container(border=True):
+                                st.write_stream(streamer(response[0]))
+                                is_btn1 = st.button(":material/check:", key='res1', help="Select left one")
+                        with res2:
+                            with st.container(border=True):
+                                st.write_stream(streamer(response[1]))
+                                is_btn2 = st.button(":material/check:", key='res2', help="Select right one")
+            else:
+                with st.container():
+                    with st.chat_message('assistant', avatar=assistant_avatar):
+                        st.write_stream(streamer(response))
+            
+            if isinstance(response, tuple) and is_btn1:
+                controller.docstore.add('assistant', response[0])
+                controller.write_dpo_data(
+                    context=history + '\n' + f"### 응답: {response[0]}",
+                    chosen=response[0],
+                    rejected=response[1],
+                )
+            elif isinstance(response, tuple) and is_btn2:
+                controller.docstore.add('assistant', response[1])
+                controller.write_dpo_data(
+                    context=history + '\n' + f"### 응답: {response[1]}",
+                    chosen=response[1],
+                    rejected=response[0],
+                )
+            else:
+                controller.docstore.add('assistant', response)
 
-
-        #     controller.retriever.add_to_index(controller.docstore.history[-1])
+            controller.retriever.add_to_index(controller.docstore.history[-1])
         
-        # # If users press the delete button, delete messages and history immediately.
-        # # This process includes removing indexed vector's id also.
-        # if st.session_state.delete_id is not None: 
-        #     controller.delete_chat(st.session_state.delete_id)
-        #     st.session_state.delete_id = None
-        #     st.rerun()
+        # If users press the delete button, delete messages and history immediately.
+        # This process includes removing indexed vector's id also.
+        if st.session_state.delete_id is not None: 
+            controller.delete_chat(st.session_state.delete_id)
+            st.session_state.delete_id = None
+            st.rerun()
 
 
 if __name__ == "__main__":

@@ -116,12 +116,17 @@ class AppController:
             clean_up_tokenization_spaces=True,
         )
 
-        print(generated_prompt)
-        # response = generated_prompt[0].rsplit('### 응답:', 1)[-1].strip()
+        if len(generated_prompt) > 1:
+            response = (
+                generated_prompt[0].rsplit('### 응답:', 1)[-1].strip(),
+                generated_prompt[1].rsplit('### 응답:', 1)[-1].strip(),
+            )
+        else:
+            response = generated_prompt[0].rsplit('### 응답:', 1)[-1].strip()
 
         # # response = self.model.invoke(prompt).content
 
-        # return response, history
+        return response, history
     
     def delete_chat(self, _id: str):
         target_history_index = self.docstore.delete(_id)
