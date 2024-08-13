@@ -103,6 +103,18 @@ class FaissRetriever:
         indices = indices[0][sorted_indices]
 
         return distances, indices
+    
+    
+    def search_similar_without_time(self, query: Union[List[str], str], **search_kwargs) -> tuple:
+        if isinstance(query, str):
+            query = [query]
+        
+        k = search_kwargs.pop('k', 2)
+
+        query_vector = self._query_to_vector(query)
+        distances, indices = self.index.search(query_vector, k)
+
+        return distances, indices[0]
 
     # Validation for time weighted search
     @staticmethod

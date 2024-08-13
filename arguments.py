@@ -87,6 +87,8 @@ class Arguments:
         p.add_argument("--top_p", type=float, default=0.90)
         p.add_argument("--repetition_penalty", type=float, default=1.2)
 
+        p.add_argument("--save_dir", type=str, default="data")
+
         config = p.parse_args()
 
         return config

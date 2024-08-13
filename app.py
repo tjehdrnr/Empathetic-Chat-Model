@@ -1,5 +1,5 @@
 import base64
-import time
+import time, os
 import logging
 
 import streamlit as st
@@ -56,6 +56,10 @@ def welcome_message():
 
 def previous_messages(controller):
     """Print all previous messages"""
+    if controller.docstore.messages:
+        if controller.docstore.messages[-1].message['role'] == 'user':
+            controller.docstore.messages.pop()
+    
     for obj in controller.docstore.messages:
         with st.chat_message(
             obj.message['role'],
@@ -181,6 +185,7 @@ def inference_settings():
 
 
 
+
 def main():
     """
     Display streamlit updates and handle the chat interface.
@@ -205,13 +210,19 @@ def main():
         
         # User interactive menu widgets.
         with st.container():
-            clear, save = st.columns([1, 1])
+            clear, save, dpo, _ = st.columns([1, 1, 3, 5])
             with clear:
-                if st.button(":material/refresh:", help="Start a new chat"):
-                    controller.clear_all()
-            # with save:
-            #     contents = controller.save_messages()
-            #     st.download_button(":material/save:", contents, help="Download message contents as .txt file")
+                st.button(":material/refresh:",
+                          on_click=controller.clear_all(),
+                          help="Start a new chat")
+            with save:
+                st.button(":material/save:",
+                          on_click=controller.save_dpo_data(),
+                          help="Save DPO data")
+            with dpo: 
+                dpo_mode = st.toggle("DPO Mode")
+                if dpo_mode:
+                    inference_kwargs['dpo_mode'] = True
 
         # Starting point of the main chat interface.
         welcome_message()
@@ -230,46 +241,55 @@ def main():
                     if st.button(':material/delete:', key=key, help="Delete this conversation"):
                         st.session_state.delete_id = key
 
-            response = controller.get_response(user_input, **inference_kwargs)
+            response, history = controller.get_response(user_input, **inference_kwargs)
             controller.docstore.add('assistant', response)
 
-            # Assistant's chat interface.
-            with st.container():
-                with st.chat_message('assistant', avatar=assistant_avatar):
-                    st.write_stream(streamer(response))
+        #     # Assistant's chat interface.
+        #     if dpo_mode and inference_kwargs['do_sample']:
+        #         with st.container():
+        #             with st.chat_message('assistant', avatar=assistant_avatar):
+        #                 res1, res2 = st.columns([5, 5])
+        #                 with res1:
+        #                     with st.container(border=True):
+        #                         res1 = st.write_stream(streamer(response1))
+        #                         st.button(":material/check:",
+        #                                    key='res1',
+        #                                    on_click=controller.save_dpo_data(
+        #                                        context=[
+        #                                            history + '\n' + f"### 명령어: {user_input}"
+        #                                         ],
+        #                                        chosen=[response1],
+        #                                        rejected=[response2],
+        #                                    ),
+        #                                    help="Select left one")
+        #                 with res2:
+        #                     with st.container(border=True):
+        #                         res2 = st.write_stream(streamer(response2))
+        #                         st.button(":material/check:",
+        #                                    key='res2',
+        #                                    on_click=controller.save_dpo_data(
+        #                                        context=[
+        #                                            history + '\n' + f"### 명령어: {user_input}"
+        #                                         ],
+        #                                        chosen=[response2],
+        #                                        rejected=[response1],
+        #                                    ),
+        #                                    help="Select right one")
+        #     else:
+        #         with st.container():
+        #             with st.chat_message('assistant', avatar=assistant_avatar):
+        #                 st.write_stream(streamer(response))
 
-            controller.retriever.add_to_index(controller.docstore.history[-1])
-            st.rerun()
+
+        #     controller.retriever.add_to_index(controller.docstore.history[-1])
         
-        # If users press the delete button, delete messages and history immediately.
-        # This process includes removing indexed vector's id also.
-        if st.session_state.delete_id is not None: 
-            controller.delete_chat(st.session_state.delete_id)
-            st.session_state.delete_id = None
-            st.rerun()
-
-        
-
-        # message 용량 알고리즘 짜야함..
-        # json, csv, tsv 등 파일 셀렉트하고, 저장하는 기능 추가
-        
-
-        
-        # 답변 두개(DPO 모드) 받아서 preference 체크하고 저장하기.. 인메모리니까 파일 불러와서 이어서 write 하는 방식으로    
-        
-
-        
-        #깃허브 링크 달기??
-
-        
-
-
+        # # If users press the delete button, delete messages and history immediately.
+        # # This process includes removing indexed vector's id also.
+        # if st.session_state.delete_id is not None: 
+        #     controller.delete_chat(st.session_state.delete_id)
+        #     st.session_state.delete_id = None
+        #     st.rerun()
 
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
