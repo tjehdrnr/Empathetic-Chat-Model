@@ -259,26 +259,28 @@ def main():
                             with st.container(border=True):
                                 st.write_stream(streamer(response[1]))
                                 is_btn2 = st.button(":material/check:", key='res2', help="Select right one")
+                st.stop()
+
+                if is_btn1 and not is_btn2:
+                    controller.docstore.add('assistant', response[0])
+                    controller.write_dpo_data(
+                        context=history + '\n' + f"### 응답: {response[0]}",
+                        chosen=response[0],
+                        rejected=response[1],
+                    )
+                elif not is_btn1 and is_btn2:
+                    controller.docstore.add('assistant', response[1])
+                    controller.write_dpo_data(
+                        context=history + '\n' + f"### 응답: {response[1]}",
+                        chosen=response[1],
+                        rejected=response[0],
+                    )
+                else:
+                    raise Exception("Button 1 and button 2 are equal boolean value.")
             else:
                 with st.container():
                     with st.chat_message('assistant', avatar=assistant_avatar):
                         st.write_stream(streamer(response))
-            
-            if is_btn1 and not is_btn2:
-                controller.docstore.add('assistant', response[0])
-                controller.write_dpo_data(
-                    context=history + '\n' + f"### 응답: {response[0]}",
-                    chosen=response[0],
-                    rejected=response[1],
-                )
-            elif not is_btn1 and is_btn2:
-                controller.docstore.add('assistant', response[1])
-                controller.write_dpo_data(
-                    context=history + '\n' + f"### 응답: {response[1]}",
-                    chosen=response[1],
-                    rejected=response[0],
-                )
-            st.stop()
 
             controller.retriever.add_to_index(controller.docstore.history[-1])
         
