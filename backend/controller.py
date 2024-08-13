@@ -1,17 +1,17 @@
 import os, json
-from argparse import ArgumentParser
 from arguments import Arguments
 
 import torch
 import faiss
 import logging
+import pandas as pd
 from backend.retriever import FaissRetriever
 from backend.docstore import DocumentStore
 from FlagEmbedding import BGEM3FlagModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from langchain.prompts import PromptTemplate
 
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
 import dotenv
 
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +28,7 @@ class AppController:
         
         self.user_id = user_id
         self.config = Arguments.app_args()
+        self.dpo_data = pd.DataFrame(columns=["context", "chosen", "rejected"])
 
         if os.path.exists(self.config.model_path):
             self.model = AutoModelForCausalLM.from_pretrained(
@@ -68,15 +69,20 @@ class AppController:
     
 
     def get_response(self, user_input: str, **kwargs) -> str:
-        _, indices = self.retriever.search_similar(
-            user_input, **kwargs
-        )
+        dpo_mode = kwargs.get('dpo_mode', False)
+
+        if dpo_mode:
+            _, indices = self.retriever.search_similar_without_time(
+                user_input, **kwargs
+            )
+        else:
+            _, indices = self.retriever.search_similar(
+                user_input, **kwargs
+            )
 
         history = ""
         if self.docstore.history:
             indices = indices[indices != -1]
-            print("History: ", self.docstore.history)
-            print("Indices: ", indices)
             top_k_history = [self.docstore.history[i]['text'] for i in indices]
             history = '\n'.join(top_k_history)
         
@@ -101,6 +107,7 @@ class AppController:
             min_new_tokens=kwargs['min_new_tokens'],
             max_new_tokens=kwargs['max_new_tokens'],
             pad_token_id=self.tokenizer.pad_token_id,
+            num_return_sequences=2 if dpo_mode else 1,
         )
 
         generated_prompt = self.tokenizer.batch_decode(
@@ -109,11 +116,12 @@ class AppController:
             clean_up_tokenization_spaces=True,
         )
 
-        response = generated_prompt[0].rsplit('### 응답:', 1)[-1].strip()
+        print(generated_prompt)
+        # response = generated_prompt[0].rsplit('### 응답:', 1)[-1].strip()
 
-        # response = self.model.invoke(prompt).content
+        # # response = self.model.invoke(prompt).content
 
-        return response
+        # return response, history
     
     def delete_chat(self, _id: str):
         target_history_index = self.docstore.delete(_id)
@@ -132,4 +140,25 @@ class AppController:
         )
 
         logger.info("Cleared all messages and history")
-        
+    
+
+    def write_dpo_data(self, **kwargs):
+        new_row = {
+            "context": kwargs["context"],
+            "chosen": kwargs["chosen"],
+            "rejected": kwargs["rejected"],
+        }
+
+        self.dpo_data.loc[len(self.dpo_data)] = new_row
+    
+
+    def save_dpo_data(self):
+        save_dir = self.config.save_dir
+        save_fn = os.path.join(save_dir, "dpo_data.tsv")
+
+        if os.path.exists(save_fn):
+            original_data = pd.read_csv(save_fn, sep='\t', encoding='utf-8')
+            pd.concat([original_data, self.dpo_data]).to_csv(save_fn, encoding='utf-8')
+        else:
+            self.dpo_data.to_csv(save_fn, sep='\t', encoding='utf-8')
+    
