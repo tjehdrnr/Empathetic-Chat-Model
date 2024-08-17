@@ -1,6 +1,8 @@
+import csv
 import base64
 import time, os
 import logging
+import pandas as pd
 
 import streamlit as st
 from backend.controller import AppController
@@ -16,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 
-user_avatar = "images/user2.png"
+user_avatar = "images/user.png"
 assistant_avatar = "images/assistant.png"
 image_path = "images/logo.png"
 
@@ -40,7 +42,7 @@ def login_page():
 
     if user_name and submitted:
         st.session_state.user_name = user_name
-        logger.info(f"Added user: {user_name}")
+        logger.info(f"Logged-in user: {user_name}")
         st.rerun()
 
     if not user_name and submitted:
@@ -56,10 +58,6 @@ def welcome_message():
 
 def previous_messages(controller):
     """Print all previous messages"""
-    if controller.docstore.messages:
-        if controller.docstore.messages[-1].message['role'] == 'user':
-            controller.docstore.messages.pop()
-    
     for obj in controller.docstore.messages:
         with st.chat_message(
             obj.message['role'],
@@ -113,7 +111,7 @@ def sidebar_logo():
 def messages_info(controller):
     info = controller.docstore.count()
 
-    with st.expander("STORED MESSAGES INFO", icon=':material/info:', expanded=True):
+    with st.expander("STORED MESSAGES INFO", icon=':material/info:', expanded=False):
         st.markdown(f"Number of messages: {info['n_messages']}")
         st.markdown(f"Number of histories: {info['n_history']}")
         st.write(":material/person: ***USER INPUT***")
@@ -184,54 +182,76 @@ def inference_settings():
     return inference_args
 
 
+def save_dpo_data(controller):
+    save_dir = controller.config.save_dir
+    save_fn = os.path.join(save_dir, "dpo_data.tsv")
+
+    controller.docstore.dpo_data.replace("\n+", " ", regex=True, inplace=True)
+
+    if os.path.exists(save_fn):
+        original_data = pd.read_csv(save_fn, sep='\t', encoding='utf-8')
+        merged_data = pd.concat([original_data, controller.docstore.dpo_data])
+        merged_data = merged_data.reset_index(drop=True)
+        merged_data.to_csv(
+            save_fn, sep='\t', encoding='utf-8', quoting=csv.QUOTE_NONE, index=False
+        )
+    else:
+        controller.docstore.dpo_data.to_csv(
+            save_fn, sep='\t', encoding='utf-8', quoting=csv.QUOTE_NONE, index=False
+        )
+
 
 
 def main():
     """
-    Display streamlit updates and handle the chat interface.
+    Display streamlit updates and handle the chat interface
     """
     st.session_state.setdefault('user_name', None)
     st.session_state.setdefault('delete_id', None)
-    
+    st.session_state.setdefault('responses', [])
+    st.session_state.setdefault('context', None)
+    st.session_state.setdefault('chosen', None)
+
     if st.session_state.user_name is not None:
         controller = initialize_session_state(st.session_state.user_name)
-
+        
     if st.session_state.user_name is None:
         login_page()
     else:
-        # Inferface of sidebar.
+        # Inferface of sidebar
         st.title("Streamlit Empathetic Chatbot")
         with st.sidebar:
             sidebar_logo()
             st.sidebar.markdown('---')
             messages_info(controller)
-            
             inference_kwargs = inference_settings()
         
-        # User interactive widgets menubar.
+        # User interactive widgets
         with st.container():
             clear, save, dpo, _ = st.columns([1, 1, 3, 5])
             with clear:
-                is_clear = st.button(":material/refresh:", help="Start a new chat")
+                is_clear = st.button(":material/refresh:", key="clear", help="Start a new chat")
                 if is_clear:
                     controller.clear_all()
+                    st.session_state.responses = []
+                    st.session_state.context = None
+                    st.session_state.chosen = None
             with save:
-                is_save = st.button(":material/save:", help="Save DPO data")
+                is_save = st.button(":material/save:", key="save", help="Save DPO data")
                 if is_save:
-                    controller.save_dpo_data()
+                    save_dpo_data(controller)
             with dpo: 
                 dpo_mode = st.toggle("DPO Mode")
                 if dpo_mode:
                     inference_kwargs['dpo_mode'] = True
 
-        # Starting point of the main chat interface.
+        # Starting point of the main chat interface
         welcome_message()
         previous_messages(controller)
-        
+
         if user_input := st.chat_input("어떤 고민이든 말씀해보세요."):
             message = controller.docstore.add('user', user_input)
-
-            # User's chat inferface.
+            # User input inferface
             with st.chat_message('user', avatar=user_avatar):
                 col1, col2 = st.columns([9, 1])
                 with col1:
@@ -240,50 +260,65 @@ def main():
                     key = message.metadatas['_id']
                     if st.button(':material/delete:', key=key, help="Delete this conversation"):
                         st.session_state.delete_id = key
-
+            
             response, history = controller.get_response(user_input, **inference_kwargs)
 
-            if not isinstance(response, tuple):
-                controller.docstore.add('assistant', response)
-            
-            # Assistant's chat interface.
-            if dpo_mode and inference_kwargs['do_sample']:
+            # When DPO mode is activated, two responses are displayed in the chat interface.
+            # Each response is sampled during sampling process.
+            if dpo_mode and isinstance(response, tuple):
                 with st.container():
-                    with st.chat_message('assistant', avatar=assistant_avatar):
-                        res1, res2 = st.columns([5, 5])
-                        with res1:
-                            with st.container(border=True):
-                                st.write_stream(streamer(response[0]))
-                                is_btn1 = st.button(":material/check:", key='res1', help="Select left one")
-                        with res2:
-                            with st.container(border=True):
-                                st.write_stream(streamer(response[1]))
-                                is_btn2 = st.button(":material/check:", key='res2', help="Select right one")
-                st.stop()
+                    res1, res2 = st.columns([5, 5])
+                    with res1:
+                        with st.container(border=True):
+                            st.write_stream(streamer(response[0]))
+                            st.session_state.responses.append(response[0])
+                    with res2:
+                        with st.container(border=True):
+                            st.write_stream(streamer(response[1]))
+                            st.session_state.responses.append(response[1])
 
-                if is_btn1 and not is_btn2:
-                    controller.docstore.add('assistant', response[0])
-                    controller.write_dpo_data(
-                        context=history + '\n' + f"### 응답: {response[0]}",
-                        chosen=response[0],
-                        rejected=response[1],
-                    )
-                elif not is_btn1 and is_btn2:
-                    controller.docstore.add('assistant', response[1])
-                    controller.write_dpo_data(
-                        context=history + '\n' + f"### 응답: {response[1]}",
-                        chosen=response[1],
-                        rejected=response[0],
-                    )
-                else:
-                    raise Exception("Button 1 and button 2 are equal boolean value.")
+                st.session_state.context = controller.get_context(history, user_input)
             else:
+                # Assistant response interface
                 with st.container():
                     with st.chat_message('assistant', avatar=assistant_avatar):
                         st.write_stream(streamer(response))
+                    controller.docstore.add('assistant', response)
+                    controller.retriever.add_to_index(controller.docstore.history[-1])
 
-            controller.retriever.add_to_index(controller.docstore.history[-1])
-        
+        # The User select which response is better.
+        # The selected response is stored as 'chosen' for the next generation,
+        # and the other response is stored as 'rejected' in the DPO dataset.
+        if dpo_mode and st.session_state.responses:
+            with st.container():
+                col1, col2 = st.columns([5, 5])
+                with col1:
+                    with st.container():
+                        btn1 = st.button(
+                            ":material/check:", key="res1", use_container_width=True,
+                            help="Select Left Response")
+                        if btn1:
+                            st.session_state.chosen = 0
+                with col2:
+                    with st.container():
+                        btn2 = st.button(
+                            ":material/check:", key="res2", use_container_width=True,
+                            help="Select Right Response")
+                        if btn2:
+                            st.session_state.chosen = 1
+                if btn1 or btn2:
+                    chosen_idx = st.session_state.chosen
+                    controller.docstore.add('assistant', st.session_state.responses[chosen_idx])
+                    controller.retriever.add_to_index(controller.docstore.history[-1])
+                    controller.write_dpo_data(
+                        context=st.session_state.context,
+                        chosen=st.session_state.responses[chosen_idx],
+                        rejected=st.session_state.responses[1 - chosen_idx],
+                    )
+                    st.session_state.responses = []
+                    st.toast("Selection Completed! :material/emoticon:")
+                    st.rerun()
+
         # If users press the delete button, delete messages and history immediately.
         # This process includes removing indexed vector's id also.
         if st.session_state.delete_id is not None: 

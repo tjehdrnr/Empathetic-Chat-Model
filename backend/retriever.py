@@ -1,8 +1,8 @@
+import logging
+from typing import List, Union, Dict
+
 import faiss
 import numpy as np
-import logging
-
-from typing import List, Union, Dict
 
 
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +15,7 @@ class FaissRetriever:
         self,
         embedding_model,
         index,
-        max_length=512, # Original: 8192
+        max_length=512, # max token length, default: 8192(BGE-M3)
         normalize_L2=True,
     ):
         self.embedding_model = embedding_model
@@ -28,9 +28,12 @@ class FaissRetriever:
 
         self.current_history_id = 0
 
-    # Embed queries into vectors
-    # Queries are divided into two types: user input or history
+
     def _query_to_vector(self, query: Union[List[str], str]) -> np.ndarray:
+        """
+        Embed queries into vectors.
+        Queries are divided into two types: user input or history.
+        """
         if isinstance(query, str):
             query = [query]
 
@@ -45,8 +48,11 @@ class FaissRetriever:
 
         return vectors
     
-    # Add history vectors to the Faiss index
+
     def add_to_index(self, latest_history: Dict) -> None:
+        """
+        Add history vectors to the Faiss index.
+        """
         vectors = self._query_to_vector(latest_history['text'])
         self.index.add_with_ids(vectors, np.array([self.current_history_id]))
 
@@ -59,15 +65,18 @@ class FaissRetriever:
         logger.info(f"Added {vectors.shape[0]} history vector to the index")
         logger.info(f"Added {latest_history['relative_time']}/sec to relative timestamps")
     
-    # Remove stored vector in Faiss index
+
     def remove_id(self, target_history_index: int) -> None:
+        """
+        Remove stored vector in Faiss index.
+        """
         self.index.remove_ids(np.array([target_history_index]))     
 
-    # Searches for vectors similar to user inputs and returns the search results
+
     def search_similar(self, query: Union[List[str], str], **search_kwargs) -> tuple:
         """
-        In the process of finding similar vectors,
-        I used a weighted sum of time weight in the process.
+        Searches for vectors similar to user inputs and returns the search results
+        In the process of finding similar vectors, I used a weighted sum of time weight in the process.
         This prevents retrieving history that goes too far in the past.
         """
         if isinstance(query, str):
@@ -90,8 +99,7 @@ class FaissRetriever:
         if max_time_diff == 0:
             return distances[0], indices[0]
 
-        # Normalize time weights
-        # The closer to 0, the more recent history
+        # Normalize time weights. The closer to 0, the more recent history
         normd_time_weights = time_diffs / max_time_diff
 
         # Calculate time weighted distances (Combination of vector weights and time weights)
@@ -106,6 +114,9 @@ class FaissRetriever:
     
     
     def search_similar_without_time(self, query: Union[List[str], str], **search_kwargs) -> tuple:
+        """
+        When DPO mode is activated, use this method instead of the 'search_similar' method.
+        """
         if isinstance(query, str):
             query = [query]
         
@@ -116,9 +127,12 @@ class FaissRetriever:
 
         return distances, indices[0]
 
-    # Validation for time weighted search
+
     @staticmethod
     def print_results(query, distances, indices, docstore) -> None:
+        """
+        Validation for time weighted search.
+        """
         print(f"\nUser query: {query}")
         
         for i, (dist, idx) in enumerate(zip(distances, indices)):

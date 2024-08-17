@@ -5,11 +5,11 @@ from typing import Optional
 
 LEN_ID=8
 
+
 class Message:
     __slots__ = ["message", "metadatas"]
 
     def __init__(self, role: str, content: str, session_id: Optional[str] = None):
-
         self.message = {"role": role, "content": content}
         self.metadatas = {
             "_id": str(uuid.uuid4())[:LEN_ID],

@@ -1,7 +1,9 @@
-import logging, uuid
 import time
-from backend.message import Message
+import logging, uuid
 from typing import Optional, Dict, Union
+
+import pandas as pd
+from backend.message import Message
 
 
 LEN_ID = 8
@@ -18,6 +20,7 @@ class DocumentStore:
         self.start_time = time.time()
         self.messages = []
         self.history = []
+        self.dpo_data = pd.DataFrame(columns=["context", "chosen", "rejected"])
         if user_id is not None:
             self.session_id = \
                 str(uuid.uuid5(uuid.NAMESPACE_DNS, user_id))[:LEN_ID]
@@ -61,10 +64,6 @@ class DocumentStore:
             
             
     def delete(self, _id: str) -> Union[int, None]:
-        """
-        Delete pair of user input and assistant response.
-        If user clicked delete button, this method receives message's id(metadatas: '_id').
-        """
         # Find the index of the message to delete
         msg_trg_idx, his_trg_idx = None, None
         for i, obj in enumerate(self.messages):
@@ -103,7 +102,8 @@ class DocumentStore:
 
     def count(self) -> Dict:
         """
-        Returns the number of messages and conversation history for each session
+        Returns the number of messages and conversation history for each session.
+        Depending on the tokenization method used by the tokenizer, it may vary.
         """
         user_lengths, ai_lengths = [], []
         for obj in self.messages:
@@ -126,7 +126,7 @@ class DocumentStore:
 
     def _check_capacity(self):
         """
-        If message capacity is full, delete half of past messages and history
+        If message capacity is full, delete half of previous messages and histories.
         """
         if self.messages and len(self.messages) % self.max_messages == 0:
             n_delete = self.max_messages // 2

@@ -14,3 +14,4 @@ streamlit
 python-dotenv==1.0.1
 FlagEmbedding
 ipykernel
+pandas
