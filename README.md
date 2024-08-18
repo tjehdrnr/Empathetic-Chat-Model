@@ -1,1 +1,1 @@
-'MyMary<https://github.com/ohilikeit/MyMary>' 구현해보기
+'MyMary<https://github.com/boostcampaitech5/level3_nlp_finalproject-nlp-12>' 구현해보기
