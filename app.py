@@ -57,7 +57,7 @@ def welcome_message():
 
 
 def previous_messages(controller):
-    """Print all previous messages"""
+    """Display all previous chat messages"""
     for obj in controller.docstore.messages:
         with st.chat_message(
             obj.message['role'],
@@ -183,6 +183,10 @@ def inference_settings():
 
 
 def save_dpo_data(controller):
+    """
+    Save the stored DPO data in the document store as a .tsv file at the specified directory.
+    """
+    
     save_dir = controller.config.save_dir
     save_fn = os.path.join(save_dir, "dpo_data.tsv")
 
@@ -230,15 +234,13 @@ def main():
         with st.container():
             clear, save, dpo, _ = st.columns([1, 1, 3, 5])
             with clear:
-                is_clear = st.button(":material/refresh:", key="clear", help="Start a new chat")
-                if is_clear:
+                if st.button(":material/refresh:", key="clear", help="Start a new chat"):
                     controller.clear_all()
                     st.session_state.responses = []
                     st.session_state.context = None
                     st.session_state.chosen = None
             with save:
-                is_save = st.button(":material/save:", key="save", help="Save DPO data")
-                if is_save:
+                if st.button(":material/save:", key="save", help="Save DPO data"):
                     save_dpo_data(controller)
             with dpo: 
                 dpo_mode = st.toggle("DPO Mode")
@@ -306,6 +308,7 @@ def main():
                             help="Select Right Response")
                         if btn2:
                             st.session_state.chosen = 1
+
                 if btn1 or btn2:
                     chosen_idx = st.session_state.chosen
                     controller.docstore.add('assistant', st.session_state.responses[chosen_idx])
@@ -319,12 +322,13 @@ def main():
                     st.toast("Selection Completed! :material/emoticon:")
                     st.rerun()
 
-        # If users press the delete button, delete messages and history immediately.
+        # If user press the delete button, delete messages and history immediately.
         # This process includes removing indexed vector's id also.
         if st.session_state.delete_id is not None: 
             controller.delete_chat(st.session_state.delete_id)
             st.session_state.delete_id = None
             st.rerun()
+
 
 
 if __name__ == "__main__":

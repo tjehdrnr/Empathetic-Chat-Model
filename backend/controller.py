@@ -166,9 +166,8 @@ class AppController:
 
     def write_dpo_data(self, **kwargs) -> None:
         """
-        When DPO mode is activated, 
-        write the context and responses to the Pandas dataframe.
-        The responses(chosen, rejected) are reflecting user's preference.
+        When DPO mode is activated,
+        write the context and responses(chosen, rejected) to the Pandas dataframe.
         """
         try:
             new_row = {

@@ -1,1 +1,1 @@
-### 개인 공부를 위한 Project Repo 입니다.
+'MyMary<https://github.com/ohilikeit/MyMary>' 구현해보기
