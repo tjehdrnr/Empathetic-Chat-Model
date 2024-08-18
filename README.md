@@ -21,7 +21,7 @@ _GPU 메모리에 여유가 있으시다면 10B 이상의 모델을 사용하시
 cd finetune
 python train.py --base_model eeve or kullm --add_eos_token
 ```
-2. 학습이 완료되면 finetune/adapter_model 디렉토리에 학습된 LoRA adapter weight가 저장됩니다.
+2. 학습이 완료되면 finetune/lora_adapter 디렉토리에 학습된 LoRA adapter weight가 저장됩니다.
 3. 다음 실행을 통해 LLM과 adapter 모델을 결합하면 finetune/merged_model 디렉토리에 모델 weight 파일들이 저장됩니다.
 ```bash
 python merge_lora.py --base_model eeve or kullm
