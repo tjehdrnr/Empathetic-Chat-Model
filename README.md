@@ -31,11 +31,14 @@ python merge_lora.py --base_model eeve or kullm
 python conversation.py
 ```
 
+
 ## Demo: Streamlit
 
 모델의 모의 service를 위해 Streamlit을 활용합니다.
 
-실제 service를 위해서는 사용자별로 session을 구분해 주는 로직이 필수적이지만,
+실제 service를 위해서는 사용자별 session을 구분해 주는 로직이 필수적이지만,
 
 Streamlit은 자동으로 session을 구분해 주기 때문에 시연용으로 사용하기 간편합니다.
+
+---
 
