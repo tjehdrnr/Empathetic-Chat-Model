@@ -16,7 +16,13 @@ GPU 메모리에 여유가 있으시다면 10B 이상의 모델을 사용하시�
 [empathetic_dialogues_multi_turn_ko](ohilikeit/empathetic_dialogues_mutli_turn_ko)
 
 ### **How to train**
+1. finetune 디렉토리로 이동하여, 학습시킬 LLM을 명시한 후 다음과 같이 실행합니다.
 ```bash
 cd finetune
 python train.py --base_model eeve or kullm --add_eos_token
+```
+2. 학습이 완료되면 finetune/adapter_model 디렉토리에 finetuning된 LoRA adapter 모델이 저장됩니다.
+3. Backbone LLM 모델과 LoRA adapter 모델을 다음 실행을 통해 결합하면 finetune/merged_model 디렉토리에 모델 weight file들이 저장됩니다.
+```bash
+python merge_lora.py
 ```
