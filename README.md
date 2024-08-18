@@ -43,7 +43,8 @@ Streamlit은 자동으로 session을 구분해 주기 때문에 시연용으로 
 Demo app에는 채팅 및 메시지 관리 기능에 더해 다음 두 가지의 기능이 추가되었습니다.
 
 1. 추론 hyper-parameter 조정 기능
-   temperature, top_p 등 추론에 민감한 영향을 미치는 parameter들을 실시간으로 조절할 수 있습니다.
+
+temperature, top_p 등 추론에 민감한 영향을 미치는 parameter들을 실시간으로 조절할 수 있습니다.
 
 
 ```bash
