@@ -1,5 +1,5 @@
 # Implementation of "[MyMary](https://github.com/boostcampaitech5/level3_nlp_finalproject-nlp-12)"
-개인 프로젝트의 일환으로 위 링크의 챗봇을 구현해보았습니다.
+개인 프로젝트의 일환으로 위 링크의 챗봇을 구현해 보았습니다.
 
 본 레포지토리의 모든 학습, 추론 과정은 Google Colab T4 GPU(16GB Memory)를 이용하였습니다.
 
@@ -30,3 +30,12 @@ python merge_lora.py
 ```bash
 python conversation.py
 ```
+
+## Demo: Streamlit
+
+모델의 모의 service를 위해 Streamlit을 활용합니다.
+
+실제 service를 위해서는 사용자별로 session을 구분해 주는 로직이 필수적이지만,
+
+Streamlit은 자동으로 session을 구분해 주기 때문에 시연용으로 사용하기 간편합니다.
+
