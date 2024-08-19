@@ -13,7 +13,7 @@ GPU 메모리에 여유가 있으시다면 10B 이상의 모델을 사용하시�
 
 ### **Dataset:**
 
-[empathetic_dialogues_multi_turn_ko](ohilikeit/empathetic_dialogues_mutli_turn_ko)
+[empathetic_dialogues_multi_turn_ko](https://huggingface.co/datasets/ohilikeit/empathetic_dialogues_mutli_turn_ko)
 
 ### **How to train**
 1. finetune 디렉토리로 이동하여, 학습에 이용할 LLM을 명시한 후 다음과 같이 실행합니다.
