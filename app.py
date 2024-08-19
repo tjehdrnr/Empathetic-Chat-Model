@@ -195,7 +195,6 @@ def save_dpo_data(controller):
     if os.path.exists(save_fn):
         original_data = pd.read_csv(save_fn, sep='\t', encoding='utf-8')
         merged_data = pd.concat([original_data, controller.docstore.dpo_data])
-        merged_data = merged_data.reset_index(drop=True)
         merged_data.to_csv(
             save_fn, sep='\t', encoding='utf-8', quoting=csv.QUOTE_NONE, index=False
         )
