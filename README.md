@@ -39,12 +39,19 @@ python conversation.py
 Streamlit은 자동으로 session을 구분해 주기 때문에 시연용으로 사용하기 간편합니다.
 Demo app에는 채팅 및 메시지 관리 기능에 더해 다음 두 가지의 기능이 추가되었습니다.
 
-+ 추론 hyper-parameter 조정 기능
++ 추론 hyperparameter 조정 기능
 
-temperature, top_p 등의 parameter들을 실시간으로 조절하고 생성 결과를 받아볼 수 있습니다.
+  temperature, top_p 등의 hyperparameter들을 실시간으로 조절하고 생성 결과를 받아볼 수 있습니다.
 ![change_parameters](https://github.com/user-attachments/assets/c389af8a-8cfa-410e-86f3-215aa13185b1)
 
++ DPO(Direct Preference Optimization) Mode
 
+  실시간 대화를 통해 LLM alignment를 위한 데이터셋을 구축할 수 있습니다.
+  데이터셋은 대화 맥락인 context, 유저가 선택한 응답 chosen, 선택받지 못한 응답 rejected로 구성됩니다.
+  save 버튼을 누르면 누적된 데이터가 tsv 파일로 저장되고, 이후 누적된 데이터는 해당 파일에 이어서 write됩니다.
+![dpo_mode](https://github.com/user-attachments/assets/7bbf06bc-4d92-4ef6-af09-1224519e78be)
+
+다음과 같이 실행합니다.
 ```bash
 streamlit run app.py
 ```
