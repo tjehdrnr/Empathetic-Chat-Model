@@ -41,7 +41,8 @@ Demo app에는 채팅 및 메시지 관리 기능에 더해 다음 두 가지의
 
 + 추론 hyper-parameter 조정 기능
 
-temperature, top_p 등의 parameter들을 실시간으로 조절하고 결과를 받아볼 수 있습니다.
+temperature, top_p 등의 parameter들을 실시간으로 조절하고 생성 결과를 받아볼 수 있습니다.
+![change_parameters](https://github.com/user-attachments/assets/c389af8a-8cfa-410e-86f3-215aa13185b1)
 
 
 ```bash
